@@ -1,0 +1,2 @@
+# SignalBox
+Discord utility bot

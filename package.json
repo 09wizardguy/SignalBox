@@ -1,4 +1,22 @@
 {
+  "name": "signalbox",
+  "version": "1.0.0",
+  "description": "A basic utility discord bot",
+  "homepage": "https://github.com/09wizardguy/SignalBox#readme",
+  "bugs": {
+    "url": "https://github.com/09wizardguy/SignalBox/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/09wizardguy/SignalBox.git"
+  },
+  "license": "ISC",
+  "author": "09wizardguy",
+  "type": "nodejs",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "discord.js": "^14.22.1",
     "dotenv": "^17.2.2"

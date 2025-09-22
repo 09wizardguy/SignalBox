@@ -6,6 +6,7 @@ import {
 	EmbedBuilder,
 	Events,
 	TextBasedChannel,
+	ChannelType,
 } from 'discord.js';
 
 const client = new Client({
@@ -60,6 +61,41 @@ client.once(Events.ClientReady, async () => {
 			status: 'online',
 	});
 });
+
+client.on(Events.ThreadCreate, async (channel) => {
+	try {
+		if (channel.type === ChannelType.PublicThread && channel.guild) {
+			const ModeratorRoleId = process.env.MODERATOR_ROLE_ID;
+			const SupportRoleId = process.env.SUPPORT_ROLE_ID;
+
+			await timeout(2000);
+
+			const message = await channel.send(
+				'Auto-adding moderators and relevant roles to this thread...'
+			);
+
+			await timeout(2000);
+
+			await message.edit(`<@&${ModeratorRoleId}>`);
+
+			await timeout(2000);
+
+			if ( channel.parent && channel.parent.id === process.env.SUPPORT_CHANNEL_ID) {
+				await message.edit(`<@&${SupportRoleId}>`);
+			};
+
+			await timeout(1000);
+
+			await message.delete();
+		}
+	} catch (error) {
+		console.error('Error in ThreadCreate event:', error);
+	}
+});
+
+async function timeout(time: number | undefined) {
+	return await new Promise((resolve) => setTimeout(resolve, time));
+}
 
 // Ensure the token exists
 if (!process.env.DISCORD_TOKEN) {

@@ -6,13 +6,13 @@ From moderation tools to scheduling and reminders, SignalBox helps manage your c
 ---
 
 ## ✨ Features
-- Configurable forum channel role auto add (Automatically bring specific roles into the thread channel) (WIP)
-- Reminder system (WIP)
-- Forum channel automation (WIP)
-  - Whitelist Request Forum (WIP)
-  - Ban/Strike Appeal Forum (WIP)
-  - Support Ticket Forms (WIP)
-- Strike automation (WIP)
+- Forum channel role auto add (Automatically bring specific roles into the thread channels) (Completed)
+- Reminder system (Not Started)
+- Forum channel automation (Not Started)
+  - Whitelist Request Forum (Not Started)
+  - Ban/Strike Appeal Forum (Not Started)
+  - Support Ticket Forms (Not Started)
+- Strike automation (Not Started)
 - TBD
 
 ---

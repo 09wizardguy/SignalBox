@@ -32,10 +32,16 @@ client.once(Events.ClientReady, async () => {
 		// Type guard: ensure the channel is text-based
 		if (!logsChannel || !('isTextBased' in logsChannel) || !logsChannel.isTextBased()) return;
 
+		const mode =
+			process.env.NODE_ENV === 'development' 
+			? 'development'
+			: 'production';
+
 		const embed = new EmbedBuilder()
 			.setDescription(
 				`## SignalBox is Online! :green_circle:
 				Time: <t:${Math.floor(Date.now() / 1000)}:R>
+				Running in **${mode}** mode
 				OS: **${process.platform}**
 				Node.js Version: **${process.version}**
 				Discord.js Version: **${process.env.npm_package_dependencies_discord_js}**
@@ -46,12 +52,13 @@ client.once(Events.ClientReady, async () => {
 		await logsChannel.send({ embeds: [embed] });
 	}
 
-	if (client.user) {
-		client.user.setPresence({
+		if (process.env.NODE_ENV !== 'development')
+			console.warn('Running in Production mode');
+
+		client.user?.setPresence({
 			activities: [{ name: 'Watching the Rails' }],
 			status: 'online',
-		});
-	}
+	});
 });
 
 // Ensure the token exists

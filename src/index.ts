@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import commandHandler, {reloadGlobalSlashCommands} from './handlers/command.handler';
+import textCommandHandler from './handlers/textCommand.handler';
 import {
 	Client,
 	GatewayIntentBits,
@@ -97,16 +99,29 @@ async function timeout(time: number | undefined) {
 	return await new Promise((resolve) => setTimeout(resolve, time));
 }
 
+export type Handler = (args: {client: Client}) => void;
+
+const handlers: Handler[] = [
+	commandHandler,
+	textCommandHandler,
+];
+
+handlers.forEach((handler) => handler({client}));
+
 // Ensure the token exists
 if (!process.env.DISCORD_TOKEN) {
 	console.error('ERROR: DISCORD_TOKEN is not defined in .env file');
 	process.exit(1);
 }
 
-// Log in to Discord
-client
-	.login(process.env.DISCORD_TOKEN)
-	.then(() => console.log('Logged into Discord Successfully'))
-	.catch((err) => console.error('Failed to login:', err));
+reloadGlobalSlashCommands()
+	.then(() => {
+		// Log in to Discord
+		client
+			.login(process.env.DISCORD_TOKEN)
+			.then(() => console.log('Logged into Discord Successfully'))
+			.catch((err) => console.error('Failed to login:', err));
+	})
+	.catch((err) => console.error('Failed to reload global slash commands:', err));
 
 export default client;

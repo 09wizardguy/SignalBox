@@ -14,5 +14,5 @@ export default commands;
 
 // Export Text Commands
 export const textCommands = [
-
+	userCommand
 ];

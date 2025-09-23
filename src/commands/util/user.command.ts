@@ -4,6 +4,7 @@ import {
 	GuildMember,
 	User,
 	EmbedBuilder,
+	Message,
 } from 'discord.js';
 import { Command } from '../../handlers/command.handler';
 
@@ -18,29 +19,48 @@ const userCommand: Command = {
 				.setRequired(true)
 		),
 
-	async execute(interaction: ChatInputCommandInteraction) {
-		if (!interaction.guild) {
-			await interaction.reply('This command can only be used in a server.');
+	// Slash command execution
+	async execute(interaction: ChatInputCommandInteraction | Message) {
+		let guild =
+			interaction instanceof Message ? interaction.guild : interaction.guild;
+		if (!guild) {
+			if (interaction instanceof ChatInputCommandInteraction)
+				await interaction.reply('This command can only be used in a server.');
+			else interaction.reply('This command can only be used in a server.');
 			return;
 		}
 
-		const input =
-			interaction.options.getString('target') || interaction.user.id;
+		// Determine the target user ID
+		let input: string;
+		if (interaction instanceof ChatInputCommandInteraction) {
+			input = interaction.options.getString('target') || interaction.user.id;
+		} else {
+			// For text commands, parse message content: "!user [userID or mention]"
+			const args = interaction.content.trim().split(/ +/).slice(1);
+			input = args[0] || interaction.author.id;
+		}
 
 		const userId = input.replace(/[<@!>]/g, '');
 
 		let targetUser: User | null = null;
 		let targetMember: GuildMember | null = null;
 
-		targetMember = interaction.guild.members.cache.get(userId) || null;
+		// Try to get member from guild cache
+		targetMember = guild.members.cache.get(userId) || null;
 
 		if (targetMember) {
 			targetUser = targetMember.user;
 		} else {
+			// Fetch user from API
 			try {
-				targetUser = await interaction.client.users.fetch(userId);
+				targetUser = await (interaction instanceof Message
+					? interaction.client.users.fetch(userId)
+					: interaction.client.users.fetch(userId));
 			} catch (err) {
-				await interaction.reply(`Could not find a user for input: ${input}`);
+				const replyContent = `Could not find a user for input: ${input}`;
+				if (interaction instanceof ChatInputCommandInteraction)
+					await interaction.reply(replyContent);
+				else interaction.reply(replyContent);
 				return;
 			}
 		}
@@ -56,7 +76,7 @@ const userCommand: Command = {
 			).toString();
 			roles =
 				targetMember.roles.cache
-					.filter((role) => role.id !== interaction.guild!.id)
+					.filter((role) => role.id !== guild.id)
 					.map((role) => role.name)
 					.join(', ') || 'No roles';
 		}
@@ -86,7 +106,11 @@ const userCommand: Command = {
 			)
 			.setColor('Blue');
 
-		await interaction.reply({ embeds: [embed] });
+		if (interaction instanceof ChatInputCommandInteraction) {
+			await interaction.reply({ embeds: [embed] });
+		} else {
+			await interaction.channel.send({ embeds: [embed] });
+		}
 	},
 };
 

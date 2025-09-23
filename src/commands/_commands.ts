@@ -1,7 +1,7 @@
 import { Command } from '../handlers/command.handler';
-import  pingCommand  from './util/ping.command';
-import  serverCommand  from './util/server.command';
-import  userCommand from './util/user.command';
+import  pingCommand  from './Utility/ping.command';
+import  serverCommand  from './Utility/server.command';
+import  userCommand from './Utility/user.command';
 
 // export slash commands
 export const commands: Command[] = [

@@ -16,7 +16,7 @@ const userCommand: Command = {
 			option
 				.setName('target')
 				.setDescription('The user mention or ID to get info on')
-				.setRequired(true)
+				.setRequired(false)
 		),
 
 	// Slash command execution

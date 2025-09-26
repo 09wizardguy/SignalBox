@@ -9,6 +9,7 @@ import {
 	ChatInputCommandInteraction,
 	RESTGetAPIOAuth2CurrentApplicationResult,
 	Client,
+	PermissionResolvable,
 } from 'discord.js';
 import commands from '../commands/_commands';
 
@@ -21,6 +22,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 export interface Command {
 	data: SlashCommandBuilder;
 	execute: (interaction: ChatInputCommandInteraction) => unknown;
+	requiredPermissions?: PermissionResolvable[]; 
 }
 
 // Handler type (assuming you pass in an object with a Discord client)

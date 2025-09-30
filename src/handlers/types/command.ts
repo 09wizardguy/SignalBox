@@ -12,4 +12,5 @@ export interface Command {
 	executeSlash?: (interaction: ChatInputCommandInteraction) => Promise<void>;
 	executeText?: (message: Message, args: string[]) => Promise<void>;
 	requiredPermissions?: PermissionResolvable[];
+	requiredRoles?: string[]; // Role IDs required to use this command
 }

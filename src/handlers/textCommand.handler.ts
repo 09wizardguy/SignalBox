@@ -1,7 +1,12 @@
 import { Events, Message, EmbedBuilder } from 'discord.js';
 import { Handler } from '..';
 import { textCommands } from '../commands/_commands';
-import { checkPermissions, sendNoPermission } from './permissions.handler';
+import {
+	checkPermissions,
+	checkRoles,
+	sendNoPermission,
+	sendNoRole,
+} from './permissions.handler';
 import { Command } from '../handlers/types/command';
 
 const PREFIX = '!';
@@ -23,6 +28,14 @@ const textCommandHandler: Handler = ({ client }) => {
 
 		if (!command || !command.executeText) return;
 
+		// Role check
+		if (command.requiredRoles && command.requiredRoles.length > 0) {
+			const hasRoles = await checkRoles(message, command.requiredRoles);
+			if (!hasRoles) {
+				return;
+			}
+		}
+
 		// Permission check
 		if (command.requiredPermissions) {
 			const hasPerms = await checkPermissions(
@@ -30,7 +43,6 @@ const textCommandHandler: Handler = ({ client }) => {
 				command.requiredPermissions
 			);
 			if (!hasPerms) {
-				await sendNoPermission(message);
 				return;
 			}
 		}

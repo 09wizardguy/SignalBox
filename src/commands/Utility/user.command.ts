@@ -11,7 +11,7 @@ import { Command } from '../../handlers/types/command';
 async function createUserEmbed(user: User, member: GuildMember | null) {
 	const embed = new EmbedBuilder()
 		.setTitle('User Information')
-		.setColor('#2271B3')
+		.setColor('#5865F2')
 		.setThumbnail(user.displayAvatarURL({ size: 256 }))
 		.addFields(
 			{
@@ -77,6 +77,7 @@ async function createUserEmbed(user: User, member: GuildMember | null) {
 const userCommand: Command = {
 	name: 'user',
 	description: 'Provides info about a user',
+	requiredRoles: [process.env.BASIC_COMMANDS_ROLE_ID!],
 	data: new SlashCommandBuilder()
 		.setName('user')
 		.setDescription('Info about a user')

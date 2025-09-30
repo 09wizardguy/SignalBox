@@ -9,6 +9,7 @@ import { scheduleReminder } from '../functions/reminderManager';
 const remindmeCommand: Command = {
 	name: 'remindme',
 	description: 'Set a reminder',
+	requiredRoles: [process.env.BASIC_COMMANDS_ROLE_ID!],
 	data: new SlashCommandBuilder()
 		.setName('remindme')
 		.setDescription('Set a reminder')
@@ -38,7 +39,7 @@ const remindmeCommand: Command = {
 			}
 		);
 
-		await interaction.reply(`✅ Reminder set for **${time}**`);
+		await interaction.reply(`⏰ Reminder set for **${time}**`);
 	},
 	executeText: async (message: Message, args: string[]) => {
 		const [time, ...reminderMessage] = args;
@@ -60,7 +61,7 @@ const remindmeCommand: Command = {
 				)
 		);
 
-		await message.channel.send(`✅ Reminder set for **${time}**`);
+		await message.channel.send(`⏰ Reminder set for **${time}**`);
 	},
 };
 

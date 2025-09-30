@@ -11,6 +11,12 @@ import {
 } from 'discord.js';
 import commands from '../commands/_commands';
 import { Command } from '../handlers/types/command';
+import {
+	checkPermissions,
+	checkRoles,
+	sendNoPermission,
+	sendNoRole,
+} from './permissions.handler';
 
 dotenv.config();
 
@@ -53,6 +59,25 @@ const commandHandler: Handler = ({ client }) => {
 		if (!cmd || !cmd.executeSlash) return;
 
 		try {
+			// Role check
+			if (cmd.requiredRoles && cmd.requiredRoles.length > 0) {
+				const hasRoles = await checkRoles(interaction, cmd.requiredRoles);
+				if (!hasRoles) {
+					return;
+				}
+			}
+
+			// Permission check
+			if (cmd.requiredPermissions) {
+				const hasPerms = await checkPermissions(
+					interaction,
+					cmd.requiredPermissions
+				);
+				if (!hasPerms) {
+					return;
+				}
+			}
+
 			await cmd.executeSlash(interaction);
 		} catch (error) {
 			console.error(error);

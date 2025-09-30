@@ -9,6 +9,7 @@ import { deleteReminder } from '../functions/reminderManager';
 const delreminderCommand: Command = {
 	name: 'delreminder',
 	description: 'Delete a reminder by number',
+	requiredRoles: [process.env.BASIC_COMMANDS_ROLE_ID!],
 	data: new SlashCommandBuilder()
 		.setName('delreminder')
 		.setDescription('Delete a reminder by number')
@@ -20,9 +21,9 @@ const delreminderCommand: Command = {
 		const success = deleteReminder(interaction.user.id, num - 1);
 
 		if (success) {
-			await interaction.reply(`Reminder #${num} deleted.`);
+			await interaction.reply(`🗑️ Reminder #${num} deleted.`);
 		} else {
-			await interaction.reply(`Invalid reminder number.`);
+			await interaction.reply(`⚠️ Invalid reminder number.`);
 		}
 	},
 	executeText: async (message: Message, args: string[]) => {
@@ -34,9 +35,9 @@ const delreminderCommand: Command = {
 
 		const success = deleteReminder(message.author.id, num - 1);
 		if (success) {
-			await message.channel.send(`Reminder #${num} deleted.`);
+			await message.channel.send(`🗑️ Reminder #${num} deleted.`);
 		} else {
-			await message.channel.send(`Invalid reminder number.`);
+			await message.channel.send(`⚠️ Invalid reminder number.`);
 		}
 	},
 };

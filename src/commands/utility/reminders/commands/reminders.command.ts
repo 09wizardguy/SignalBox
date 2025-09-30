@@ -9,6 +9,7 @@ import { listReminders } from '../functions/reminderManager';
 const remindersCommand: Command = {
 	name: 'reminders',
 	description: 'View your active reminders',
+	requiredRoles: [process.env.BASIC_COMMANDS_ROLE_ID!],
 	data: new SlashCommandBuilder()
 		.setName('reminders')
 		.setDescription('List your active reminders'),

@@ -11,7 +11,7 @@ import { Command } from '../../handlers/types/command';
 async function createUserEmbed(user: User, member: GuildMember | null) {
 	const embed = new EmbedBuilder()
 		.setTitle('User Information')
-		.setColor('#5865F2')
+		.setColor('#3E5F8A')
 		.setThumbnail(user.displayAvatarURL({ size: 256 }))
 		.addFields(
 			{

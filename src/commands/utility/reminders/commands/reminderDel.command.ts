@@ -3,8 +3,8 @@ import {
 	ChatInputCommandInteraction,
 	Message,
 } from 'discord.js';
-import { Command } from '../../../../handlers/types/command'; 
-import { deleteReminder } from '../functions/reminderManager'; 
+import { Command } from '../../../../handlers/types/command';
+import { deleteReminder } from '../functions/reminderManager';
 
 const delreminderCommand: Command = {
 	name: 'delreminder',
@@ -20,23 +20,23 @@ const delreminderCommand: Command = {
 		const success = deleteReminder(interaction.user.id, num - 1);
 
 		if (success) {
-			await interaction.reply(`🗑️ Reminder #${num} deleted.`);
+			await interaction.reply(`Reminder #${num} deleted.`);
 		} else {
-			await interaction.reply(`⚠️ Invalid reminder number.`);
+			await interaction.reply(`Invalid reminder number.`);
 		}
 	},
 	executeText: async (message: Message, args: string[]) => {
 		const num = parseInt(args[0]);
 		if (isNaN(num)) {
-			await message.reply('Usage: !delreminder <number>');
+			await message.channel.send('Usage: !delreminder <number>');
 			return;
 		}
 
 		const success = deleteReminder(message.author.id, num - 1);
 		if (success) {
-			await message.reply(`🗑️ Reminder #${num} deleted.`);
+			await message.channel.send(`Reminder #${num} deleted.`);
 		} else {
-			await message.reply(`⚠️ Invalid reminder number.`);
+			await message.channel.send(`Invalid reminder number.`);
 		}
 	},
 };

@@ -3,7 +3,7 @@ import {
 	ChatInputCommandInteraction,
 	Message,
 } from 'discord.js';
-import { Command } from '../../../../handlers/types/command'; 
+import { Command } from '../../../../handlers/types/command';
 import { scheduleReminder } from '../functions/reminderManager';
 
 const remindmeCommand: Command = {
@@ -24,25 +24,43 @@ const remindmeCommand: Command = {
 	executeSlash: async (interaction: ChatInputCommandInteraction) => {
 		const time = interaction.options.getString('time', true);
 		const msg = interaction.options.getString('message') || '';
-		await scheduleReminder(interaction.user.id, time, msg, async (text) =>
-			await interaction.followUp(text)
+
+		await scheduleReminder(
+			interaction.user.id,
+			time,
+			msg,
+			async (message, createdAt) => {
+				await interaction.channel?.send(
+					`⏰ Reminder for <@${
+						interaction.user.id
+					}>: ${message} set <t:${Math.floor(createdAt / 1000)}:R>`
+				);
+			}
 		);
 
-		await interaction.followUp(`⏰ Reminder set for **${time}**`);
+		await interaction.reply(`✅ Reminder set for **${time}**`);
 	},
 	executeText: async (message: Message, args: string[]) => {
 		const [time, ...reminderMessage] = args;
 		if (!time) {
-			await message.reply('Usage: !remindme <time> <message?>');
+			await message.channel.send('Usage: !remindme <time> <message?>');
 			return;
 		}
 		const msg = reminderMessage.join(' ');
 
-		await scheduleReminder(message.author.id, time, msg, (text) =>
-			message.channel.send(`${message.author} ${text}`)
+		await scheduleReminder(
+			message.author.id,
+			time,
+			msg,
+			(reminderText, createdAt) =>
+				message.channel.send(
+					`⏰ Reminder for <@${
+						message.author.id
+					}>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`
+				)
 		);
 
-		await message.reply(`⏰ Reminder set for **${time}**`);
+		await message.channel.send(`✅ Reminder set for **${time}**`);
 	},
 };
 

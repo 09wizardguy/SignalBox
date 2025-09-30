@@ -1,6 +1,6 @@
 import { Events, Message, EmbedBuilder } from 'discord.js';
 import { Handler } from '..';
-import { textCommands } from '../commands/_commands'
+import { textCommands } from '../commands/_commands';
 import { checkPermissions, sendNoPermission } from './permissions.handler';
 import { Command } from '../handlers/types/command';
 
@@ -16,11 +16,6 @@ const textCommandHandler: Handler = ({ client }) => {
 
 		// Safety check: filter out invalid commands
 		const validCommands = textCommands.filter((cmd) => cmd && cmd.name);
-		// Debug log to see what commands exist
-		console.log(
-			'Loaded textCommands:',
-			validCommands.map((c) => c.name)
-		);
 
 		const command: Command | undefined = validCommands.find(
 			(cmd) => cmd.name.toLowerCase() === commandName

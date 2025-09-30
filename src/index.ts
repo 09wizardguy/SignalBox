@@ -1,6 +1,9 @@
 import 'dotenv/config';
-import commandHandler, {reloadGlobalSlashCommands} from './handlers/command.handler';
+import commandHandler, {
+	reloadGlobalSlashCommands,
+} from './handlers/command.handler';
 import textCommandHandler from './handlers/textCommand.handler';
+import { loadReminders } from './commands/utility/reminders/functions/reminderManager';
 import {
 	Client,
 	GatewayIntentBits,
@@ -27,18 +30,36 @@ const client = new Client({
 client.once(Events.ClientReady, async () => {
 	console.log('Discord Bot is Ready!');
 
+	// Load reminders from file
+	loadReminders(async (userId, message, createdAt) => {
+		try {
+			const user = await client.users.fetch(userId);
+			const dmChannel = await user.createDM();
+			await dmChannel.send(
+				`⏰ Reminder for <@${userId}>: ${message} set at <t:${Math.floor(
+					createdAt / 1000
+				)}:F>`
+			);
+		} catch (error) {
+			console.error(`Failed to send reminder to user ${userId}:`, error);
+		}
+	});
+
 	const logsChannelId = process.env.LOGS_CHANNEL_ID;
 
 	if (logsChannelId) {
 		const logsChannel = await client.channels.fetch(logsChannelId);
 
 		// Type guard: ensure the channel is text-based
-		if (!logsChannel || !('isTextBased' in logsChannel) || !logsChannel.isTextBased()) return;
+		if (
+			!logsChannel ||
+			!('isTextBased' in logsChannel) ||
+			!logsChannel.isTextBased()
+		)
+			return;
 
 		const mode =
-			process.env.NODE_ENV === 'development' 
-			? 'development'
-			: 'production';
+			process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
 		const embed = new EmbedBuilder()
 			.setDescription(
@@ -55,12 +76,12 @@ client.once(Events.ClientReady, async () => {
 		await logsChannel.send({ embeds: [embed] });
 	}
 
-		if (process.env.NODE_ENV !== 'development')
-			console.warn('Running in Production mode');
+	if (process.env.NODE_ENV !== 'development')
+		console.warn('Running in Production mode');
 
-		client.user?.setPresence({
-			activities: [{ name: 'Watching the Rails' }],
-			status: 'online',
+	client.user?.setPresence({
+		activities: [{ name: 'Watching the Rails' }],
+		status: 'online',
 	});
 });
 
@@ -82,9 +103,12 @@ client.on(Events.ThreadCreate, async (channel) => {
 
 			await timeout(2000);
 
-			if ( channel.parent && channel.parent.id === process.env.SUPPORT_CHANNEL_ID) {
+			if (
+				channel.parent &&
+				channel.parent.id === process.env.SUPPORT_CHANNEL_ID
+			) {
 				await message.edit(`<@&${SupportRoleId}>`);
-			};
+			}
 
 			await timeout(1000);
 
@@ -99,14 +123,11 @@ async function timeout(time: number | undefined) {
 	return await new Promise((resolve) => setTimeout(resolve, time));
 }
 
-export type Handler = (args: {client: Client}) => void;
+export type Handler = (args: { client: Client }) => void;
 
-const handlers: Handler[] = [
-	commandHandler,
-	textCommandHandler,
-];
+const handlers: Handler[] = [commandHandler, textCommandHandler];
 
-handlers.forEach((handler) => handler({client}));
+handlers.forEach((handler) => handler({ client }));
 
 // Ensure the token exists
 if (!process.env.DISCORD_TOKEN) {
@@ -122,6 +143,8 @@ reloadGlobalSlashCommands()
 			.then(() => console.log('Logged into Discord Successfully'))
 			.catch((err) => console.error('Failed to login:', err));
 	})
-	.catch((err) => console.error('Failed to reload global slash commands:', err));
+	.catch((err) =>
+		console.error('Failed to reload global slash commands:', err)
+	);
 
 export default client;

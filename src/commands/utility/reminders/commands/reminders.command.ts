@@ -21,20 +21,30 @@ const remindersCommand: Command = {
 
 		await interaction.reply(
 			`📋 Your reminders:\n${active
-				.map((r, i) => `${i + 1}. ${r.message || '(no message)'}`)
+				.map(
+					(r, i) =>
+						`${i + 1}. ${r.message || '(no message)'} - <t:${Math.floor(
+							r.expiresAt / 1000
+						)}:R>`
+				)
 				.join('\n')}`
 		);
 	},
 	executeText: async (message: Message) => {
 		const active = listReminders(message.author.id);
 		if (active.length === 0) {
-			await message.reply('✅ You have no active reminders.');
+			await message.channel.send('✅ You have no active reminders.');
 			return;
 		}
 
-		await message.reply(
+		await message.channel.send(
 			`📋 Your reminders:\n${active
-				.map((r, i) => `${i + 1}. ${r.message || '(no message)'}`)
+				.map(
+					(r, i) =>
+						`${i + 1}. ${r.message || '(no message)'} - <t:${Math.floor(
+							r.expiresAt / 1000
+						)}:R>`
+				)
 				.join('\n')}`
 		);
 	},

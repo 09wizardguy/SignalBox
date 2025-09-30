@@ -1,7 +1,8 @@
 import { Events, Message, EmbedBuilder } from 'discord.js';
 import { Handler } from '..';
-import { textCommands } from '../commands/_commands';
+import { textCommands } from '../commands/_commands'
 import { checkPermissions, sendNoPermission } from './permissions.handler';
+import { Command } from '../handlers/types/command';
 
 const PREFIX = '!';
 
@@ -11,14 +12,23 @@ const textCommandHandler: Handler = ({ client }) => {
 
 		const args = message.content.slice(PREFIX.length).trim().split(/ +/);
 		const commandName = args.shift()?.toLowerCase();
+		if (!commandName) return;
 
-		// Find the matching command
-		const command = textCommands.find(
+		// Safety check: filter out invalid commands
+		const validCommands = textCommands.filter((cmd) => cmd && cmd.name);
+		// Debug log to see what commands exist
+		console.log(
+			'Loaded textCommands:',
+			validCommands.map((c) => c.name)
+		);
+
+		const command: Command | undefined = validCommands.find(
 			(cmd) => cmd.name.toLowerCase() === commandName
 		);
-		if (!command) return;
 
-		// 🔒 Permission check
+		if (!command || !command.executeText) return;
+
+		// Permission check
 		if (command.requiredPermissions) {
 			const hasPerms = await checkPermissions(
 				message,
@@ -30,11 +40,11 @@ const textCommandHandler: Handler = ({ client }) => {
 			}
 		}
 
-		// Execute command
+		// Execute command safely
 		try {
-			await command.execute(message, args);
+			await command.executeText(message, args);
 		} catch (error) {
-			console.error(error);
+			console.error(`Error executing text command ${command.name}:`, error);
 			await message.channel.send({
 				embeds: [
 					new EmbedBuilder()

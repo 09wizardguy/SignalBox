@@ -2,48 +2,32 @@ import dotenv from 'dotenv';
 import {
 	REST,
 	Routes,
-	SlashCommandBuilder,
 	Collection,
 	EmbedBuilder,
 	Events,
 	ChatInputCommandInteraction,
 	RESTGetAPIOAuth2CurrentApplicationResult,
 	Client,
-	PermissionResolvable,
 } from 'discord.js';
 import commands from '../commands/_commands';
+import { Command } from '../handlers/types/command';
 
 dotenv.config();
 
-// REST client setup
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
-// Command interface
-export interface Command {
-	data: SlashCommandBuilder;
-	execute: (interaction: ChatInputCommandInteraction) => unknown;
-	requiredPermissions?: PermissionResolvable[]; 
-}
+// Collection of slash-capable commands
+const commandCollection = new Collection<string, Command>(
+	commands
+		.filter((cmd) => cmd.data) // only slash commands
+		.map((cmd) => [cmd.data!.name, cmd])
+);
 
-// Handler type (assuming you pass in an object with a Discord client)
 export type Handler = (context: { client: Client }) => void;
 
-// Collection of commands
-const commandCollection = new Collection<string, Command>(
-	commands.map((cmd) => [cmd.data.name, cmd])
-);
-
-console.log(
-	`Loaded ${commands.length} command${commands.length === 1 ? '' : 's'}:`
-);
-commands.forEach((cmd) => console.log(`- ${cmd.data.name}`));
-
-// Function to reload slash commands globally
 export async function reloadGlobalSlashCommands() {
 	try {
-		console.log(
-			`Started refreshing ${commands.length} application (/) commands.`
-		);
+		console.log(`Refreshing ${commandCollection.size} slash commands...`);
 		console.time('Refreshing commands');
 
 		const { id: appID } = (await rest.get(
@@ -51,42 +35,33 @@ export async function reloadGlobalSlashCommands() {
 		)) as RESTGetAPIOAuth2CurrentApplicationResult;
 
 		await rest.put(Routes.applicationCommands(appID), {
-			body: commands.map((cmd) => cmd.data.toJSON()),
+			body: [...commandCollection.values()].map((cmd) => cmd.data!.toJSON()),
 		});
 
-		console.log('Successfully reloaded commands.');
+		console.log('Slash commands reloaded.');
 		console.timeEnd('Refreshing commands');
 	} catch (error) {
 		console.error(error);
 	}
 }
 
-// Command handler
 const commandHandler: Handler = ({ client }) => {
 	client.on(Events.InteractionCreate, async (interaction) => {
 		if (!interaction.isChatInputCommand()) return;
-		if (!commandCollection.has(interaction.commandName)) return;
+
+		const cmd = commandCollection.get(interaction.commandName);
+		if (!cmd || !cmd.executeSlash) return;
 
 		try {
-			await commandCollection
-				.get(interaction.commandName)!
-				.execute(interaction);
-
-			if (!interaction.replied) {
-				await interaction.reply({
-					embeds: [new EmbedBuilder().setTitle('Command Executed')],
-					ephemeral: true,
-				});
-			}
+			await cmd.executeSlash(interaction);
 		} catch (error) {
 			console.error(error);
-
 			if (interaction.isRepliable()) {
 				await interaction.reply({
 					embeds: [
 						new EmbedBuilder()
-							.setTitle('Error Occurred')
-							.setDescription('An error occurred while executing the command.')
+							.setTitle('Error')
+							.setDescription('There was an error executing that command.')
 							.setColor('Red'),
 					],
 					ephemeral: true,

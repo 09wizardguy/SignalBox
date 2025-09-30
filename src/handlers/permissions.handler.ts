@@ -10,7 +10,7 @@ export async function checkPermissions(
 	source: ChatInputCommandInteraction | Message,
 	requiredPerms: PermissionResolvable[]
 ): Promise<boolean> {
-	const member = source instance of Message
+	const member = source instanceof Message
 		? source.member as GuildMember
 		: (source.member as GuildMember);
 

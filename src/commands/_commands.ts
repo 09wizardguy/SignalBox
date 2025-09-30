@@ -1,18 +1,27 @@
-import { Command } from '../handlers/command.handler';
-import  pingCommand  from './utility/ping.command';
-import  serverCommand  from './utility/server.command';
-import  userCommand from './utility/user.command';
+import { Command } from '../handlers/types/command';
+import pingCommand from './utility/ping.command';
+import userCommand from './utility/user.command';
+import serverCommand from './utility/server.command';
+import remindmeCommand from './utility/reminders/commands/remindme.command';
+import remindersCommand from './utility/reminders/commands/reminders.command';
+import delreminderCommand from './utility/reminders/commands/reminderDel.command';
 
-// export slash commands
-export const commands: Command[] = [
+const commands: Command[] = [
 	pingCommand,
+	userCommand,
 	serverCommand,
-	userCommand
+	remindmeCommand,
+	remindersCommand,
+	delreminderCommand,
 ];
 
 export default commands;
 
-// Export Text Commands
-export const textCommands = [
-	userCommand
+const textCommands: Command[] = [
+	userCommand,
+	remindmeCommand,
+	remindersCommand,
+	delreminderCommand,
 ];
+
+export { textCommands };

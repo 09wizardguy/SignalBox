@@ -1,116 +1,37 @@
 import {
 	SlashCommandBuilder,
 	ChatInputCommandInteraction,
-	GuildMember,
-	User,
-	EmbedBuilder,
 	Message,
 } from 'discord.js';
-import { Command } from '../../handlers/command.handler';
+import { Command } from '../../handlers/types/command';
 
 const userCommand: Command = {
+	name: 'user',
+	description: 'Provides info about a user',
 	data: new SlashCommandBuilder()
 		.setName('user')
-		.setDescription('Provides information about a user.')
-		.addStringOption((option) =>
-			option
-				.setName('target')
-				.setDescription('The user mention or ID to get info on')
-				.setRequired(false)
+		.setDescription('Info about a user')
+		.addUserOption((option) =>
+			option.setName('target').setDescription('The user to look up')
 		),
+	executeSlash: async (interaction: ChatInputCommandInteraction) => {
+		const target = interaction.options.getUser('target') || interaction.user;
+		const member = await interaction.guild?.members.fetch(target.id);
 
-	// Slash command execution
-	async execute(interaction: ChatInputCommandInteraction | Message) {
-		let guild =
-			interaction instanceof Message ? interaction.guild : interaction.guild;
-		if (!guild) {
-			if (interaction instanceof ChatInputCommandInteraction)
-				await interaction.reply('This command can only be used in a server.');
-			else interaction.reply('This command can only be used in a server.');
-			return;
-		}
+		await interaction.reply(
+			`👤 User: **${target.tag}**\n🆔 ID: ${target.id}\n📅 Joined: ${member?.joinedAt}`
+		);
+	},
+	executeText: async (message: Message, args: string[]) => {
+		const target =
+			message.mentions.users.first() ||
+			(await message.client.users.fetch(args[0]).catch(() => null)) ||
+			message.author;
+		const member = await message.guild?.members.fetch(target.id);
 
-		// Determine the target user ID
-		let input: string;
-		if (interaction instanceof ChatInputCommandInteraction) {
-			input = interaction.options.getString('target') || interaction.user.id;
-		} else {
-			// For text commands, parse message content: "!user [userID or mention]"
-			const args = interaction.content.trim().split(/ +/).slice(1);
-			input = args[0] || interaction.author.id;
-		}
-
-		const userId = input.replace(/[<@!>]/g, '');
-
-		let targetUser: User | null = null;
-		let targetMember: GuildMember | null = null;
-
-		// Try to get member from guild cache
-		targetMember = guild.members.cache.get(userId) || null;
-
-		if (targetMember) {
-			targetUser = targetMember.user;
-		} else {
-			// Fetch user from API
-			try {
-				targetUser = await (interaction instanceof Message
-					? interaction.client.users.fetch(userId)
-					: interaction.client.users.fetch(userId));
-			} catch (err) {
-				const replyContent = `Could not find a user for input: ${input}`;
-				if (interaction instanceof ChatInputCommandInteraction)
-					await interaction.reply(replyContent);
-				else interaction.reply(replyContent);
-				return;
-			}
-		}
-
-		const accountCreated = Math.floor(targetUser.createdTimestamp / 1000);
-
-		let joinedServer = 'Not in server';
-		let roles = 'N/A';
-
-		if (targetMember) {
-			joinedServer = Math.floor(
-				targetMember.joinedTimestamp! / 1000
-			).toString();
-			roles =
-				targetMember.roles.cache
-					.filter((role) => role.id !== guild.id)
-					.map((role) => role.name)
-					.join(', ') || 'No roles';
-		}
-
-		const embed = new EmbedBuilder()
-			.setTitle(`User Info: ${targetUser.username}`)
-			.setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-			.addFields(
-				{ name: 'Mention', value: `<@${targetUser.id}>`, inline: true },
-				{ name: 'User ID', value: targetUser.id, inline: true },
-				{
-					name: 'Account Created',
-					value: `<t:${accountCreated}:R>`,
-					inline: true,
-				},
-				{
-					name: 'In Server?',
-					value: targetMember ? 'Yes' : 'No',
-					inline: true,
-				},
-				{
-					name: 'Joined Server',
-					value: targetMember ? `<t:${joinedServer}:R>` : 'N/A',
-					inline: true,
-				},
-				{ name: 'Roles', value: roles, inline: false }
-			)
-			.setColor('Blue');
-
-		if (interaction instanceof ChatInputCommandInteraction) {
-			await interaction.reply({ embeds: [embed] });
-		} else {
-			await interaction.channel.send({ embeds: [embed] });
-		}
+		await message.reply(
+			`👤 User: **${target.tag}**\n🆔 ID: ${target.id}\n📅 Joined: ${member?.joinedAt}`
+		);
 	},
 };
 

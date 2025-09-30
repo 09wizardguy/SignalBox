@@ -45,7 +45,7 @@ client.once(Events.ClientReady, async () => {
 		}
 	});
 
-	const logsChannelId = process.env.LOGS_CHANNEL_ID;
+	const logsChannelId = process.env.STARTUP_LOGS_CHANNEL_ID;
 
 	if (logsChannelId) {
 		const logsChannel = await client.channels.fetch(logsChannelId);

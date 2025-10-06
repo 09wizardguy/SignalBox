@@ -99,17 +99,13 @@ async function cacheGuildInvites(guild: Guild) {
  * Initialize invite tracking for all guilds
  */
 export async function initializeInviteTracking(client: Client) {
-	console.log('Starting invite tracking initialization...');
 	loadMemberInvites();
 
 	for (const guild of client.guilds.cache.values()) {
-		console.log(`Caching invites for guild: ${guild.name}`);
 		await cacheGuildInvites(guild);
 	}
 
-	console.log(
-		`Invite tracking initialized. Loaded data for ${memberInvites.size} members.`
-	);
+	console.log('Invite tracking initialized.');
 }
 
 /**
@@ -117,12 +113,10 @@ export async function initializeInviteTracking(client: Client) {
  */
 export async function handleMemberJoin(member: GuildMember) {
 	try {
-		console.log(`New member joined: ${member.user.tag}`);
 		const guild = member.guild;
 		const cachedInvites = guildInvites.get(guild.id);
 
 		if (!cachedInvites) {
-			console.log('No cached invites found, caching now...');
 			await cacheGuildInvites(guild);
 			return;
 		}
@@ -145,12 +139,6 @@ export async function handleMemberJoin(member: GuildMember) {
 			});
 
 			saveMemberInvites();
-
-			console.log(
-				`${member.user.tag} joined using invite ${usedInvite.code} from ${usedInvite.inviter.tag}`
-			);
-		} else {
-			console.log(`Could not determine invite used by ${member.user.tag}`);
 		}
 
 		// Update cache
@@ -196,7 +184,5 @@ export async function handleInviteDelete(invite: Invite) {
  * Get invite info for a member
  */
 export function getMemberInviteInfo(userId: string): MemberInviteInfo | null {
-	const info = memberInvites.get(userId) || null;
-	console.log(`getMemberInviteInfo called for ${userId}:`, info);
-	return info;
+	return memberInvites.get(userId) || null;
 }

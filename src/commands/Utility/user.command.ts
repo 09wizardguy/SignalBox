@@ -53,10 +53,6 @@ async function createUserEmbed(user: User, member: GuildMember | null) {
 
 		// Check for invite information
 		const inviteInfo = getMemberInviteInfo(user.id);
-		console.log(
-			`Checking invite info for user ${user.tag} (${user.id}):`,
-			inviteInfo
-		);
 		if (inviteInfo) {
 			embed.addFields({
 				name: '🔗 Invite Information',

@@ -7,11 +7,12 @@ import {
 	GuildMember,
 } from 'discord.js';
 import { Command } from '../../handlers/types/command';
+import { getMemberInviteInfo } from '../../handlers/inviteTracker';
 
 async function createUserEmbed(user: User, member: GuildMember | null) {
 	const embed = new EmbedBuilder()
 		.setTitle('User Information')
-		.setColor('#3E5F8A')
+		.setColor('#5865F2')
 		.setThumbnail(user.displayAvatarURL({ size: 256 }))
 		.addFields(
 			{
@@ -49,6 +50,20 @@ async function createUserEmbed(user: User, member: GuildMember | null) {
 				: 'Unknown',
 			inline: false,
 		});
+
+		// Check for invite information
+		const inviteInfo = getMemberInviteInfo(user.id);
+		console.log(
+			`Checking invite info for user ${user.tag} (${user.id}):`,
+			inviteInfo
+		);
+		if (inviteInfo) {
+			embed.addFields({
+				name: '🔗 Invite Information',
+				value: `**Code:** \`${inviteInfo.inviteCode}\`\n**Created by:** <@${inviteInfo.inviterId}> (${inviteInfo.inviterTag})`,
+				inline: false,
+			});
+		}
 
 		// Get roles (exclude @everyone)
 		const roles = member.roles.cache

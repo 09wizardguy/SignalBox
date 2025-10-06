@@ -5,6 +5,12 @@ import commandHandler, {
 import textCommandHandler from './handlers/textCommand.handler';
 import { loadReminders } from './commands/utility/reminders/functions/reminderManager';
 import {
+	initializeInviteTracking,
+	handleMemberJoin,
+	handleInviteCreate,
+	handleInviteDelete,
+} from './handlers/inviteTracker';
+import {
 	Client,
 	GatewayIntentBits,
 	Partials,
@@ -23,6 +29,7 @@ const client = new Client({
 		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.GuildPresences,
 		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.GuildInvites,
 	],
 	partials: [Partials.Channel],
 });
@@ -30,15 +37,18 @@ const client = new Client({
 client.once(Events.ClientReady, async () => {
 	console.log('Discord Bot is Ready!');
 
+	// Initialize invite tracking
+	await initializeInviteTracking(client);
+
 	// Load reminders from file
 	loadReminders(async (userId, message, createdAt) => {
 		try {
 			const user = await client.users.fetch(userId);
 			const dmChannel = await user.createDM();
 			await dmChannel.send(
-				`⏰ Reminder for <@${userId}>: ${message} set at <t:${Math.floor(
+				`⏰ Reminder for <@${userId}>: ${message} set <t:${Math.floor(
 					createdAt / 1000
-				)}:F>`
+				)}:R>`
 			);
 		} catch (error) {
 			console.error(`Failed to send reminder to user ${userId}:`, error);
@@ -117,6 +127,21 @@ client.on(Events.ThreadCreate, async (channel) => {
 	} catch (error) {
 		console.error('Error in ThreadCreate event:', error);
 	}
+});
+
+// Track member joins for invite tracking
+client.on(Events.GuildMemberAdd, async (member) => {
+	await handleMemberJoin(member);
+});
+
+// Track invite creation
+client.on(Events.InviteCreate, async (invite) => {
+	await handleInviteCreate(invite);
+});
+
+// Track invite deletion (only updates cache, doesn't remove member data)
+client.on(Events.InviteDelete, async (invite) => {
+	await handleInviteDelete(invite);
 });
 
 async function timeout(time: number | undefined) {

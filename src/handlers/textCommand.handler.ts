@@ -1,4 +1,4 @@
-import { Events, Message, EmbedBuilder } from 'discord.js';
+import { Events, Message, EmbedBuilder, Interaction } from 'discord.js';
 import { Handler } from '..';
 import { textCommands } from '../commands/_commands';
 import {
@@ -8,6 +8,15 @@ import {
 	sendNoRole,
 } from './permissions.handler';
 import { Command } from '../handlers/types/command';
+import {
+	handleApplyButton,
+	handleApplicationModalSubmit,
+	handleTrainSelectMenu,
+} from '../buttons/handleApply';
+import {
+	handleApproveButton,
+	handleRejectButton,
+} from '../buttons/handleApproveReject';
 
 const PREFIX = '!';
 
@@ -59,6 +68,65 @@ const textCommandHandler: Handler = ({ client }) => {
 						.setDescription('There was an error executing that command.'),
 				],
 			});
+		}
+	});
+
+	// Handle button interactions
+	client.on(Events.InteractionCreate, async (interaction: Interaction) => {
+		if (interaction.isButton()) {
+			const customId = interaction.customId;
+
+			try {
+				if (customId === 'apply') {
+					await handleApplyButton(interaction);
+				} else if (customId.startsWith('approve_')) {
+					await handleApproveButton(interaction);
+				} else if (customId.startsWith('reject_')) {
+					await handleRejectButton(interaction);
+				}
+			} catch (error) {
+				console.error('Error handling button interaction:', error);
+				if (interaction.isRepliable() && !interaction.replied) {
+					await interaction.reply({
+						content: '❌ An error occurred while processing your request.',
+						ephemeral: true,
+					});
+				}
+			}
+		}
+
+		// Handle modal submissions
+		if (interaction.isModalSubmit()) {
+			try {
+				if (interaction.customId === 'application_modal') {
+					await handleApplicationModalSubmit(interaction);
+				}
+			} catch (error) {
+				console.error('Error handling modal submission:', error);
+				if (interaction.isRepliable() && !interaction.replied) {
+					await interaction.reply({
+						content: '❌ An error occurred while processing your application.',
+						ephemeral: true,
+					});
+				}
+			}
+		}
+
+		// Handle select menu interactions
+		if (interaction.isStringSelectMenu()) {
+			try {
+				if (interaction.customId.startsWith('train_select_')) {
+					await handleTrainSelectMenu(interaction);
+				}
+			} catch (error) {
+				console.error('Error handling select menu interaction:', error);
+				if (interaction.isRepliable() && !interaction.replied) {
+					await interaction.reply({
+						content: '❌ An error occurred while processing your selection.',
+						ephemeral: true,
+					});
+				}
+			}
 		}
 	});
 };

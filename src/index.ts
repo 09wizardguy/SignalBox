@@ -4,6 +4,7 @@ import commandHandler, {
 } from './handlers/command.handler';
 import textCommandHandler from './handlers/textCommand.handler';
 import { loadReminders } from './commands/utility/reminders/functions/reminderManager';
+import { loadApplications } from './services/applicationManager';
 import {
 	initializeInviteTracking,
 	handleMemberJoin,
@@ -54,6 +55,9 @@ client.once(Events.ClientReady, async () => {
 			console.error(`Failed to send reminder to user ${userId}:`, error);
 		}
 	});
+
+	// Load applications from file
+	loadApplications();
 
 	const logsChannelId = process.env.STARTUP_LOGS_CHANNEL_ID;
 

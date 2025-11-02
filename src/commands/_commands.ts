@@ -9,23 +9,23 @@ import showApplyButtonCommand from './applications/show-apply-button.command';
 import listApplicationsCommand from './applications/list-applications.command';
 
 const commands: Command[] = [
-	pingCommand,
-	userCommand,
-	serverCommand,
-	remindmeCommand,
-	remindersCommand,
-	delreminderCommand,
-	showApplyButtonCommand,
-	listApplicationsCommand,
+    pingCommand,
+    userCommand,
+    serverCommand,
+    remindmeCommand,
+    remindersCommand,
+    delreminderCommand,
+    showApplyButtonCommand,
+    listApplicationsCommand,
 ];
 
 export default commands;
 
 const textCommands: Command[] = [
-	userCommand,
-	remindmeCommand,
-	remindersCommand,
-	delreminderCommand,
+    userCommand,
+    remindmeCommand,
+    remindersCommand,
+    delreminderCommand,
 ];
 
 export { textCommands };

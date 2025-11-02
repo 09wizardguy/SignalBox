@@ -1,264 +1,266 @@
 import {
-	ButtonInteraction,
-	MessageFlags,
-	EmbedBuilder,
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
-	Colors,
-	ModalBuilder,
-	TextInputBuilder,
-	TextInputStyle,
-	StringSelectMenuBuilder,
-	StringSelectMenuInteraction,
+    ButtonInteraction,
+    MessageFlags,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    Colors,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    StringSelectMenuBuilder,
+    StringSelectMenuInteraction,
 } from 'discord.js';
 import {
-	createApplication,
-	getApplication,
-	updateApplicationMessageId,
+    createApplication,
+    getApplication,
+    updateApplicationMessageId,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
 
 export async function handleApplyButton(interaction: ButtonInteraction) {
-	// Check if user already has an application
-	const existingApp = getApplication(interaction.user.id);
+    // Check if user already has an application
+    const existingApp = getApplication(interaction.user.id);
 
-	if (existingApp) {
-		if (existingApp.status === ApplicationStatus.PENDING) {
-			await interaction.reply({
-				content: '⚠️ You already have a pending application!',
-				flags: MessageFlags.Ephemeral,
-			});
-			return;
-		} else if (existingApp.status === ApplicationStatus.APPROVED) {
-			await interaction.reply({
-				content: '✅ Your application has already been approved!',
-				flags: MessageFlags.Ephemeral,
-			});
-			return;
-		} else if (existingApp.status === ApplicationStatus.REJECTED) {
-			await interaction.reply({
-				content:
-					'❌ Your previous application was rejected. Please contact a moderator.',
-				flags: MessageFlags.Ephemeral,
-			});
-			return;
-		}
-	}
+    if (existingApp) {
+        if (existingApp.status === ApplicationStatus.PENDING) {
+            await interaction.reply({
+                content: '⚠️ You already have a pending application!',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        } else if (existingApp.status === ApplicationStatus.APPROVED) {
+            await interaction.reply({
+                content: '✅ Your application has already been approved!',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        } else if (existingApp.status === ApplicationStatus.REJECTED) {
+            await interaction.reply({
+                content:
+                    '❌ Your previous application was rejected. Please contact a moderator.',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+    }
 
-	// Create modal
-	const modal = new ModalBuilder()
-		.setCustomId('application_modal')
-		.setTitle('Application Form');
+    // Create modal
+    const modal = new ModalBuilder()
+        .setCustomId('application_modal')
+        .setTitle('Application Form');
 
-	// Minecraft Username input
-	const minecraftUsernameInput = new TextInputBuilder()
-		.setCustomId('minecraft_username_input')
-		.setLabel('What is your Minecraft Username?')
-		.setStyle(TextInputStyle.Short)
-		.setPlaceholder('Enter your Minecraft username')
-		.setRequired(true)
-		.setMinLength(3)
-		.setMaxLength(16);
+    // Minecraft Username input
+    const minecraftUsernameInput = new TextInputBuilder()
+        .setCustomId('minecraft_username_input')
+        .setLabel('What is your Minecraft Username?')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Enter your Minecraft username')
+        .setRequired(true)
+        .setMinLength(3)
+        .setMaxLength(16);
 
-	// Reason input
-	const reasonInput = new TextInputBuilder()
-		.setCustomId('reason_input')
-		.setLabel('Why do you want to join?')
-		.setStyle(TextInputStyle.Paragraph)
-		.setPlaceholder('Tell us why you want to be part of the community')
-		.setRequired(false)
-		.setMaxLength(1000);
+    // Reason input
+    const reasonInput = new TextInputBuilder()
+        .setCustomId('reason_input')
+        .setLabel('Why do you want to join?')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Tell us why you want to be part of the community')
+        .setRequired(false)
+        .setMaxLength(1000);
 
-	// Experience input
-	const experienceInput = new TextInputBuilder()
-		.setCustomId('experience_input')
-		.setLabel('Tell us about your experience!')
-		.setStyle(TextInputStyle.Paragraph)
-		.setPlaceholder('Share your background and experience')
-		.setRequired(false)
-		.setMaxLength(1000);
+    // Experience input
+    const experienceInput = new TextInputBuilder()
+        .setCustomId('experience_input')
+        .setLabel('Tell us about your experience!')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Share your background and experience')
+        .setRequired(false)
+        .setMaxLength(1000);
 
-	// Add inputs to action rows
-	const minecraftUsernameRow =
-		new ActionRowBuilder<TextInputBuilder>().addComponents(
-			minecraftUsernameInput
-		);
-	const reasonRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-		reasonInput
-	);
-	const experienceRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
-		experienceInput
-	);
+    // Add inputs to action rows
+    const minecraftUsernameRow =
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+            minecraftUsernameInput
+        );
+    const reasonRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+        reasonInput
+    );
+    const experienceRow =
+        new ActionRowBuilder<TextInputBuilder>().addComponents(experienceInput);
 
-	modal.addComponents(minecraftUsernameRow, reasonRow, experienceRow);
+    modal.addComponents(minecraftUsernameRow, reasonRow, experienceRow);
 
-	// Show modal
-	await interaction.showModal(modal);
+    // Show modal
+    await interaction.showModal(modal);
 }
 
 export async function handleApplicationModalSubmit(interaction: any) {
-	// Get the values from the modal
-	const minecraftUsername = interaction.fields.getTextInputValue(
-		'minecraft_username_input'
-	);
-	const reason =
-		interaction.fields.getTextInputValue('reason_input') || undefined;
-	const experience =
-		interaction.fields.getTextInputValue('experience_input') || undefined;
+    // Get the values from the modal
+    const minecraftUsername = interaction.fields.getTextInputValue(
+        'minecraft_username_input'
+    );
+    const reason =
+        interaction.fields.getTextInputValue('reason_input') || undefined;
+    const experience =
+        interaction.fields.getTextInputValue('experience_input') || undefined;
 
-	// Send ephemeral message with train question dropdown
-	const trainSelect = new StringSelectMenuBuilder()
-		.setCustomId(`train_select_${interaction.user.id}`)
-		.setPlaceholder('Select your answer')
-		.addOptions([
-			{
-				label: 'Yes',
-				value: 'yes',
-				emoji: '🚂',
-			},
-			{
-				label: 'No',
-				value: 'no',
-				emoji: '❌',
-			},
-		]);
+    // Send ephemeral message with train question dropdown
+    const trainSelect = new StringSelectMenuBuilder()
+        .setCustomId(`train_select_${interaction.user.id}`)
+        .setPlaceholder('Select your answer')
+        .addOptions([
+            {
+                label: 'Yes',
+                value: 'yes',
+                emoji: '🚂',
+            },
+            {
+                label: 'No',
+                value: 'no',
+                emoji: '❌',
+            },
+        ]);
 
-	const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-		trainSelect
-	);
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+        trainSelect
+    );
 
-	await interaction.reply({
-		content: '🚂 **Final Question:** Do you like trains?',
-		components: [row],
-		flags: MessageFlags.Ephemeral,
-	});
+    await interaction.reply({
+        content: '🚂 **Final Question:** Do you like trains?',
+        components: [row],
+        flags: MessageFlags.Ephemeral,
+    });
 
-	// Store the application data temporarily (we'll save it when they answer the train question)
-	// We'll use a temporary Map to store this
-	if (!global.pendingApplications) {
-		global.pendingApplications = new Map();
-	}
+    // Store the application data temporarily (we'll save it when they answer the train question)
+    // We'll use a temporary Map to store this
+    if (!global.pendingApplications) {
+        global.pendingApplications = new Map();
+    }
 
-	global.pendingApplications.set(interaction.user.id, {
-		minecraftUsername,
-		reason,
-		experience,
-	});
+    global.pendingApplications.set(interaction.user.id, {
+        minecraftUsername,
+        reason,
+        experience,
+    });
 }
 
 export async function handleTrainSelectMenu(
-	interaction: StringSelectMenuInteraction
+    interaction: StringSelectMenuInteraction
 ) {
-	const userId = interaction.customId.split('_')[2];
-	const likeTrains = interaction.values[0] === 'yes' ? 'Yes' : 'No';
+    const userId = interaction.customId.split('_')[2];
+    const likeTrains = interaction.values[0] === 'yes' ? 'Yes' : 'No';
 
-	// Get the pending application data
-	const pendingData = global.pendingApplications?.get(userId);
+    // Get the pending application data
+    const pendingData = global.pendingApplications?.get(userId);
 
-	if (!pendingData) {
-		await interaction.update({
-			content: '❌ Application data not found. Please start over.',
-			components: [],
-		});
-		return;
-	}
+    if (!pendingData) {
+        await interaction.update({
+            content: '❌ Application data not found. Please start over.',
+            components: [],
+        });
+        return;
+    }
 
-	// Create application with all data
-	const application = createApplication(
-		userId,
-		interaction.user.username,
-		pendingData.minecraftUsername,
-		pendingData.reason,
-		pendingData.experience,
-		likeTrains
-	);
+    // Create application with all data
+    const application = createApplication(
+        userId,
+        interaction.user.username,
+        pendingData.minecraftUsername,
+        pendingData.reason,
+        pendingData.experience,
+        likeTrains
+    );
 
-	// Clean up temporary data
-	global.pendingApplications?.delete(userId);
+    // Clean up temporary data
+    global.pendingApplications?.delete(userId);
 
-	await interaction.update({
-		content: '✅ Application submitted! Please wait for moderator review.',
-		components: [],
-	});
+    await interaction.update({
+        content: '✅ Application submitted! Please wait for moderator review.',
+        components: [],
+    });
 
-	// Send to moderators channel
-	await sendToModerators(
-		interaction,
-		application,
-		pendingData.minecraftUsername,
-		pendingData.reason,
-		pendingData.experience,
-		likeTrains
-	);
+    // Send to moderators channel
+    await sendToModerators(
+        interaction,
+        application,
+        pendingData.minecraftUsername,
+        pendingData.reason,
+        pendingData.experience,
+        likeTrains
+    );
 }
 
 async function sendToModerators(
-	interaction: any,
-	application: any,
-	minecraftUsername: string,
-	reason?: string,
-	experience?: string,
-	likeTrains?: string
+    interaction: any,
+    application: any,
+    minecraftUsername: string,
+    reason?: string,
+    experience?: string,
+    likeTrains?: string
 ) {
-	const reviewChannelId = process.env.APPLICATION_REVIEW_CHANNEL_ID;
+    const reviewChannelId = process.env.APPLICATION_REVIEW_CHANNEL_ID;
 
-	if (!reviewChannelId) {
-		console.error('APPLICATION_REVIEW_CHANNEL_ID not set in .env');
-		return;
-	}
+    if (!reviewChannelId) {
+        console.error('APPLICATION_REVIEW_CHANNEL_ID not set in .env');
+        return;
+    }
 
-	const reviewChannel = await interaction.client.channels.fetch(
-		reviewChannelId
-	);
+    const reviewChannel =
+        await interaction.client.channels.fetch(reviewChannelId);
 
-	if (!reviewChannel || !reviewChannel.isTextBased()) {
-		console.error('Invalid review channel');
-		return;
-	}
+    if (!reviewChannel || !reviewChannel.isTextBased()) {
+        console.error('Invalid review channel');
+        return;
+    }
 
-	const embed = new EmbedBuilder()
-		.setTitle(`New Application from ${interaction.user.username}`)
-		.setThumbnail(interaction.user.displayAvatarURL({ size: 256 }))
-		.addFields(
-			{ name: 'User', value: `<@${interaction.user.id}>`, inline: true },
-			{ name: 'User ID', value: interaction.user.id, inline: true },
-			{ name: 'Minecraft Username', value: minecraftUsername, inline: false },
-			{ name: 'Reason', value: reason || 'Not provided', inline: false },
-			{
-				name: 'Experience',
-				value: experience || 'Not provided',
-				inline: false,
-			},
-			{
-				name: '🚂 Likes Trains?',
-				value: likeTrains || 'Not answered',
-				inline: true,
-			}
-		)
-		.setColor(Colors.Blue)
-		.setTimestamp();
+    const embed = new EmbedBuilder()
+        .setTitle(`New Application from ${interaction.user.username}`)
+        .setThumbnail(interaction.user.displayAvatarURL({ size: 256 }))
+        .addFields(
+            { name: 'User', value: `<@${interaction.user.id}>`, inline: true },
+            { name: 'User ID', value: interaction.user.id, inline: true },
+            {
+                name: 'Minecraft Username',
+                value: minecraftUsername,
+                inline: false,
+            },
+            { name: 'Reason', value: reason || 'Not provided', inline: false },
+            {
+                name: 'Experience',
+                value: experience || 'Not provided',
+                inline: false,
+            },
+            {
+                name: '🚂 Likes Trains?',
+                value: likeTrains || 'Not answered',
+                inline: true,
+            }
+        )
+        .setColor(Colors.Blue)
+        .setTimestamp();
 
-	const approveButton = new ButtonBuilder()
-		.setCustomId(`approve_${interaction.user.id}`)
-		.setLabel('✅ Approve')
-		.setStyle(ButtonStyle.Success);
+    const approveButton = new ButtonBuilder()
+        .setCustomId(`approve_${interaction.user.id}`)
+        .setLabel('✅ Approve')
+        .setStyle(ButtonStyle.Success);
 
-	const rejectButton = new ButtonBuilder()
-		.setCustomId(`reject_${interaction.user.id}`)
-		.setLabel('❌ Reject')
-		.setStyle(ButtonStyle.Danger);
+    const rejectButton = new ButtonBuilder()
+        .setCustomId(`reject_${interaction.user.id}`)
+        .setLabel('❌ Reject')
+        .setStyle(ButtonStyle.Danger);
 
-	const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-		approveButton,
-		rejectButton
-	);
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        approveButton,
+        rejectButton
+    );
 
-	const message = await reviewChannel.send({
-		embeds: [embed],
-		components: [row],
-	});
+    const message = await reviewChannel.send({
+        embeds: [embed],
+        components: [row],
+    });
 
-	// Store message ID
-	updateApplicationMessageId(interaction.user.id, message.id);
+    // Store message ID
+    updateApplicationMessageId(interaction.user.id, message.id);
 }

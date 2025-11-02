@@ -6,6 +6,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
 import { Command } from '../../handlers/types/command';
 
@@ -41,7 +42,7 @@ const showApplyButtonCommand: Command = {
 
         await interaction.reply({
             content: '✅ Application button posted!',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
     },
 };

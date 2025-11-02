@@ -60,7 +60,17 @@ function loadMemberInvites() {
             return;
         }
 
-        const data = JSON.parse(fs.readFileSync(INVITES_FILE, 'utf-8'));
+        const fileContent = fs.readFileSync(INVITES_FILE, 'utf-8').trim();
+
+        // Check if file is empty or only contains whitespace
+        if (!fileContent) {
+            console.log('Invite data file is empty, starting fresh.');
+            // Initialize with empty object
+            fs.writeFileSync(INVITES_FILE, '{}');
+            return;
+        }
+
+        const data = JSON.parse(fileContent);
 
         for (const [userId, info] of Object.entries(data)) {
             memberInvites.set(userId, info as MemberInviteInfo);
@@ -69,6 +79,16 @@ function loadMemberInvites() {
         console.log(`Loaded invite data for ${memberInvites.size} members.`);
     } catch (error) {
         console.error('Error loading invite data:', error);
+        console.log('Creating fresh invite data file...');
+        // Reset file with empty object if corrupted
+        try {
+            fs.writeFileSync(INVITES_FILE, '{}');
+        } catch (writeError) {
+            console.error(
+                'Could not create fresh invite data file:',
+                writeError
+            );
+        }
     }
 }
 

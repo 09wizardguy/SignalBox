@@ -18,6 +18,10 @@ import {
     updateApplicationMessageId,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
+import {
+    validateMinecraftUsername,
+    formatUUID,
+} from '../services/minecraftService';
 
 export async function handleApplyButton(interaction: ButtonInteraction) {
     // Check if user already has an application
@@ -106,6 +110,11 @@ export async function handleApplicationModalSubmit(interaction: any) {
     const experience =
         interaction.fields.getTextInputValue('experience_input') || undefined;
 
+    // Validate Minecraft username
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const minecraftProfile = await validateMinecraftUsername(minecraftUsername);
+
     // Send ephemeral message with train question dropdown
     const trainSelect = new StringSelectMenuBuilder()
         .setCustomId(`train_select_${interaction.user.id}`)
@@ -127,20 +136,27 @@ export async function handleApplicationModalSubmit(interaction: any) {
         trainSelect
     );
 
-    await interaction.reply({
-        content: '🚂 **Final Question:** Do you like trains?',
+    let statusMessage = '';
+    if (minecraftProfile.isValid) {
+        statusMessage = `\n✅ Minecraft account validated: **${minecraftProfile.name}**`;
+    } else {
+        statusMessage = `\n⚠️ Warning: Could not validate Minecraft username. Moderators will review your application.`;
+    }
+
+    await interaction.editReply({
+        content: `🚂 **Final Question:** Do you like trains?${statusMessage}`,
         components: [row],
-        flags: MessageFlags.Ephemeral,
     });
 
-    // Store the application data temporarily (we'll save it when they answer the train question)
-    // We'll use a temporary Map to store this
+    // Store the application data temporarily
     if (!global.pendingApplications) {
         global.pendingApplications = new Map();
     }
 
     global.pendingApplications.set(interaction.user.id, {
-        minecraftUsername,
+        minecraftUsername: minecraftProfile.name || minecraftUsername,
+        minecraftUUID: minecraftProfile.id,
+        isValidMinecraftAccount: minecraftProfile.isValid,
         reason,
         experience,
     });
@@ -168,6 +184,8 @@ export async function handleTrainSelectMenu(
         userId,
         interaction.user.username,
         pendingData.minecraftUsername,
+        pendingData.minecraftUUID,
+        pendingData.isValidMinecraftAccount,
         pendingData.reason,
         pendingData.experience,
         likeTrains
@@ -186,6 +204,8 @@ export async function handleTrainSelectMenu(
         interaction,
         application,
         pendingData.minecraftUsername,
+        pendingData.minecraftUUID,
+        pendingData.isValidMinecraftAccount,
         pendingData.reason,
         pendingData.experience,
         likeTrains
@@ -196,6 +216,8 @@ async function sendToModerators(
     interaction: any,
     application: any,
     minecraftUsername: string,
+    minecraftUUID?: string,
+    isValidMinecraftAccount?: boolean,
     reason?: string,
     experience?: string,
     likeTrains?: string
@@ -225,21 +247,40 @@ async function sendToModerators(
                 name: 'Minecraft Username',
                 value: minecraftUsername,
                 inline: false,
-            },
-            { name: 'Reason', value: reason || 'Not provided', inline: false },
-            {
-                name: 'Experience',
-                value: experience || 'Not provided',
-                inline: false,
-            },
-            {
-                name: '🚂 Likes Trains?',
-                value: likeTrains || 'Not answered',
-                inline: true,
             }
         )
-        .setColor(Colors.Blue)
-        .setTimestamp();
+        .setColor(isValidMinecraftAccount ? Colors.Blue : Colors.Orange);
+
+    // Add Minecraft validation status
+    if (isValidMinecraftAccount && minecraftUUID) {
+        embed.addFields({
+            name: '✅ Minecraft Account Status',
+            value: `**Valid Account**\nUUID: \`${formatUUID(minecraftUUID)}\`\n[View on NameMC](https://namemc.com/profile/${minecraftUsername})`,
+            inline: false,
+        });
+    } else {
+        embed.addFields({
+            name: '⚠️ Minecraft Account Status',
+            value: '**Could not validate** - Username may be invalid or API error occurred',
+            inline: false,
+        });
+    }
+
+    embed.addFields(
+        { name: 'Reason', value: reason || 'Not provided', inline: false },
+        {
+            name: 'Experience',
+            value: experience || 'Not provided',
+            inline: false,
+        },
+        {
+            name: '🚂 Likes Trains?',
+            value: likeTrains || 'Not answered',
+            inline: true,
+        }
+    );
+
+    embed.setTimestamp();
 
     const approveButton = new ButtonBuilder()
         .setCustomId(`approve_${interaction.user.id}`)

@@ -3,10 +3,12 @@ import {
     ChatInputCommandInteraction,
     PermissionFlagsBits,
     EmbedBuilder,
+    MessageFlags,
 } from 'discord.js';
 import { Command } from '../../handlers/types/command';
 import { getAllApplications } from '../../services/applicationManager';
 import { ApplicationStatus } from '../../handlers/types/application';
+import { formatUUID } from '../../services/minecraftService';
 
 const listApplicationsCommand: Command = {
     name: 'list-applications',
@@ -38,7 +40,7 @@ const listApplicationsCommand: Command = {
                 content: statusFilter
                     ? `No applications found with status: ${statusFilter}`
                     : 'No applications found.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -55,14 +57,22 @@ const listApplicationsCommand: Command = {
 
         // Add fields for each application
         for (const app of applications.slice(0, 25)) {
-            // Discord limit of 25 fields
             const user = await interaction.client.users
                 .fetch(app.userId)
                 .catch(() => null);
+
+            const validationStatus = app.isValidMinecraftAccount
+                ? `✅ Valid`
+                : '⚠️ Not Validated';
+
+            const uuidInfo = app.minecraftUUID
+                ? `\n**UUID:** \`${formatUUID(app.minecraftUUID)}\``
+                : '';
+
             const fieldValue = [
                 `**User:** ${user ? user.tag : 'Unknown'} (<@${app.userId}>)`,
                 `**Status:** ${app.status}`,
-                `**Minecraft Username:** ${app.minecraftUsername}`,
+                `**Minecraft:** ${app.minecraftUsername} (${validationStatus})${uuidInfo}`,
                 `**Reason:** ${app.reason?.substring(0, 100) || 'Not provided'}`,
                 `**Likes Trains:** ${app.likeTrains || 'Not answered'}`,
                 `**Applied:** <t:${Math.floor(app.createdAt / 1000)}:R>`,
@@ -81,7 +91,7 @@ const listApplicationsCommand: Command = {
             });
         }
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     },
 };
 

@@ -5,6 +5,7 @@ import {
     EmbedBuilder,
     User,
     GuildMember,
+    MessageFlags,
 } from 'discord.js';
 import { Command } from '../../handlers/types/command';
 import { getMemberInviteInfo } from '../../handlers/inviteTracker';
@@ -111,7 +112,7 @@ const userCommand: Command = {
                 await interaction.reply({
                     content:
                         '❌ Could not find that user. Please provide a valid user mention or ID.',
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
                 return;
             }

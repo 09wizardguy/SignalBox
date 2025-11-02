@@ -49,7 +49,7 @@ export async function sendNoPermission(
     if (source instanceof Message) {
         await source.channel.send({ embeds: [embed] });
     } else if (source.isRepliable()) {
-        await source.reply({ embeds: [embed], ephemeral: true });
+        await source.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 }
 
@@ -66,6 +66,6 @@ export async function sendNoRole(
     if (source instanceof Message) {
         await source.channel.send({ embeds: [embed] });
     } else if (source.isRepliable()) {
-        await source.reply({ embeds: [embed], ephemeral: true });
+        await source.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 }

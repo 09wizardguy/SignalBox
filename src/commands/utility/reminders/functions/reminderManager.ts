@@ -67,7 +67,17 @@ export function loadReminders(
             return;
         }
 
-        const data = JSON.parse(fs.readFileSync(REMINDERS_FILE, 'utf-8'));
+        const fileContent = fs.readFileSync(REMINDERS_FILE, 'utf-8').trim();
+
+        // Check if file is empty or only contains whitespace
+        if (!fileContent) {
+            console.log('Reminders file is empty, starting fresh.');
+            // Initialize with empty object
+            fs.writeFileSync(REMINDERS_FILE, '{}');
+            return;
+        }
+
+        const data = JSON.parse(fileContent);
         const now = Date.now();
 
         for (const [userId, userReminders] of Object.entries(data)) {
@@ -108,6 +118,13 @@ export function loadReminders(
         console.log(`Loaded ${reminders.size} users with active reminders.`);
     } catch (error) {
         console.error('Error loading reminders:', error);
+        console.log('Creating fresh reminders file...');
+        // Reset file with empty object if corrupted
+        try {
+            fs.writeFileSync(REMINDERS_FILE, '{}');
+        } catch (writeError) {
+            console.error('Could not create fresh reminders file:', writeError);
+        }
     }
 }
 

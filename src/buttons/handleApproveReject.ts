@@ -3,12 +3,14 @@ import {
     Colors,
     EmbedBuilder,
     GuildMember,
+    MessageFlags,
 } from 'discord.js';
 import {
     getApplication,
     updateApplicationStatus,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
+import { whitelistPlayer } from '../services/minecraftService';
 
 export async function handleApproveButton(interaction: ButtonInteraction) {
     // Check if user has moderator role
@@ -19,7 +21,7 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
             await interaction.reply({
                 content:
                     '❌ You do not have permission to approve applications.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -31,7 +33,7 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
     if (!application) {
         await interaction.reply({
             content: '❌ Application not found.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }
@@ -39,10 +41,13 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
     if (application.status !== ApplicationStatus.PENDING) {
         await interaction.reply({
             content: '⚠️ This application has already been processed.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }
+
+    // Defer the reply since whitelisting might take a moment
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Update status
     updateApplicationStatus(userId, ApplicationStatus.APPROVED);
@@ -58,12 +63,33 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
         }
     }
 
+    // Attempt to whitelist the Minecraft account if valid
+    let whitelistStatus = '';
+    if (application.isValidMinecraftAccount && application.minecraftUsername) {
+        const whitelisted = await whitelistPlayer(
+            application.minecraftUsername
+        );
+
+        if (whitelisted) {
+            whitelistStatus =
+                '\n🎮 **Minecraft account whitelisted successfully!**';
+        } else {
+            whitelistStatus =
+                '\n⚠️ **Failed to whitelist Minecraft account** - Please whitelist manually or check RCON configuration.';
+        }
+    } else {
+        whitelistStatus =
+            '\n⚠️ **Minecraft account not validated** - Whitelist the player manually if needed.';
+    }
+
     // Update embed
     const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
         .setColor(Colors.Green)
-        .setFooter({ text: `Approved by ${interaction.user.username}` });
+        .setFooter({
+            text: `Approved by ${interaction.user.username}${whitelistStatus}`,
+        });
 
-    await interaction.update({
+    await interaction.message.edit({
         embeds: [updatedEmbed],
         components: [],
     });
@@ -71,16 +97,23 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
     // Notify user
     try {
         const user = await interaction.client.users.fetch(userId);
-        await user.send(
-            '🎉 Congratulations! Your application has been **APPROVED**!'
-        );
+        let dmMessage =
+            '🎉 Congratulations! Your application has been **APPROVED**!';
+
+        if (
+            application.isValidMinecraftAccount &&
+            whitelistStatus.includes('successfully')
+        ) {
+            dmMessage += `\n\n✅ Your Minecraft account **${application.minecraftUsername}** has been whitelisted! You can now join the server.`;
+        }
+
+        await user.send(dmMessage);
     } catch (error) {
         console.error('Could not DM user:', error);
     }
 
-    await interaction.followUp({
-        content: `✅ Application approved for <@${userId}>`,
-        ephemeral: true,
+    await interaction.editReply({
+        content: `✅ Application approved for <@${userId}>${whitelistStatus}`,
     });
 }
 
@@ -93,7 +126,7 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
             await interaction.reply({
                 content:
                     '❌ You do not have permission to reject applications.',
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -105,7 +138,7 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
     if (!application) {
         await interaction.reply({
             content: '❌ Application not found.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }
@@ -113,7 +146,7 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
     if (application.status !== ApplicationStatus.PENDING) {
         await interaction.reply({
             content: '⚠️ This application has already been processed.',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }
@@ -143,6 +176,6 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
 
     await interaction.followUp({
         content: `❌ Application rejected for <@${userId}>`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
     });
 }

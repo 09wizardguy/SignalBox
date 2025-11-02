@@ -2,12 +2,14 @@ export interface Application {
     userId: string;
     username: string;
     minecraftUsername: string;
+    minecraftUUID?: string;
+    isValidMinecraftAccount?: boolean;
     reason?: string;
     experience?: string;
     likeTrains?: string;
     status: ApplicationStatus;
     createdAt: number;
-    messageId?: string; // ID of the approval message
+    messageId?: string;
 }
 
 export enum ApplicationStatus {
@@ -20,6 +22,8 @@ export interface SerializedApplication {
     userId: string;
     username: string;
     minecraftUsername: string;
+    minecraftUUID?: string;
+    isValidMinecraftAccount?: boolean;
     reason?: string;
     experience?: string;
     likeTrains?: string;

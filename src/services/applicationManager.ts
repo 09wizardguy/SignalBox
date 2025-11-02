@@ -32,6 +32,8 @@ function saveApplications() {
                 userId: app.userId,
                 username: app.username,
                 minecraftUsername: app.minecraftUsername,
+                minecraftUUID: app.minecraftUUID,
+                isValidMinecraftAccount: app.isValidMinecraftAccount,
                 reason: app.reason,
                 experience: app.experience,
                 likeTrains: app.likeTrains,
@@ -59,7 +61,17 @@ export function loadApplications() {
             return;
         }
 
-        const data = JSON.parse(fs.readFileSync(APPLICATIONS_FILE, 'utf-8'));
+        const fileContent = fs.readFileSync(APPLICATIONS_FILE, 'utf-8').trim();
+
+        // Check if file is empty or only contains whitespace
+        if (!fileContent) {
+            console.log('Applications file is empty, starting fresh.');
+            // Initialize with empty object
+            fs.writeFileSync(APPLICATIONS_FILE, '{}');
+            return;
+        }
+
+        const data = JSON.parse(fileContent);
 
         for (const [userId, app] of Object.entries(data)) {
             applications.set(userId, app as Application);
@@ -68,6 +80,16 @@ export function loadApplications() {
         console.log(`Loaded ${applications.size} applications.`);
     } catch (error) {
         console.error('Error loading applications:', error);
+        console.log('Creating fresh applications file...');
+        // Reset file with empty object if corrupted
+        try {
+            fs.writeFileSync(APPLICATIONS_FILE, '{}');
+        } catch (writeError) {
+            console.error(
+                'Could not create fresh applications file:',
+                writeError
+            );
+        }
     }
 }
 
@@ -78,6 +100,8 @@ export function createApplication(
     userId: string,
     username: string,
     minecraftUsername: string,
+    minecraftUUID?: string,
+    isValidMinecraftAccount?: boolean,
     reason?: string,
     experience?: string,
     likeTrains?: string
@@ -86,6 +110,8 @@ export function createApplication(
         userId,
         username,
         minecraftUsername,
+        minecraftUUID,
+        isValidMinecraftAccount,
         reason,
         experience,
         likeTrains,

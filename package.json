@@ -23,10 +23,12 @@
         "discord.js": "^14.22.1",
         "dotenv": "^17.2.2",
         "moment-timezone": "^0.6.0",
-        "prettier": "^3.6.2"
+        "prettier": "^3.6.2",
+        "rcon-client": "^4.2.5"
     },
     "devDependencies": {
         "@eslint/js": "^9.36.0",
+        "@types/node": "^20.0.0",
         "eslint": "^9.36.0",
         "tsup": "^8.5.0",
         "tsx": "^4.20.5",

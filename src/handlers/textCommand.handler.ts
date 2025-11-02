@@ -1,4 +1,4 @@
-import { Events, Message, EmbedBuilder, Interaction } from 'discord.js';
+import { Events, Message, EmbedBuilder, Interaction, MessageFlags } from 'discord.js';
 import { Handler } from '..';
 import { textCommands } from '../commands/_commands';
 import {
@@ -95,7 +95,7 @@ const textCommandHandler: Handler = ({ client }) => {
                     await interaction.reply({
                         content:
                             '❌ An error occurred while processing your request.',
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
                 }
             }
@@ -113,7 +113,7 @@ const textCommandHandler: Handler = ({ client }) => {
                     await interaction.reply({
                         content:
                             '❌ An error occurred while processing your application.',
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
                 }
             }
@@ -131,7 +131,7 @@ const textCommandHandler: Handler = ({ client }) => {
                     await interaction.reply({
                         content:
                             '❌ An error occurred while processing your selection.',
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
                 }
             }

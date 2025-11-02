@@ -8,6 +8,7 @@ import {
     ChatInputCommandInteraction,
     RESTGetAPIOAuth2CurrentApplicationResult,
     Client,
+    MessageFlags,
 } from 'discord.js';
 import commands from '../commands/_commands';
 import { Command } from '../handlers/types/command';
@@ -96,7 +97,7 @@ const commandHandler: Handler = ({ client }) => {
                             )
                             .setColor('Red'),
                     ],
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         }

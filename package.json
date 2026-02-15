@@ -14,7 +14,7 @@
     "author": "09wizardguy",
     "type": "commonjs",
     "scripts": {
-        "dev": "NODE_ENV=development tsx watch src/index.ts",
+        "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
         "start": "tsx src/index.ts",
         "lint": "tsc && eslint . && prettier --check .",
         "lint:fix": "prettier --write ."
@@ -29,6 +29,7 @@
     "devDependencies": {
         "@eslint/js": "^9.36.0",
         "@types/node": "^20.0.0",
+        "cross-env": "^10.1.0",
         "eslint": "^9.36.0",
         "tsup": "^8.5.0",
         "tsx": "^4.20.5",

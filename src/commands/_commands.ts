@@ -1,6 +1,5 @@
 import { Command } from '../handlers/types/command';
 
-// Use dynamic imports with error handling to identify which command is failing
 let pingCommand;
 let userCommand;
 let serverCommand;
@@ -9,6 +8,7 @@ let remindersCommand;
 let delreminderCommand;
 let showApplyButtonCommand;
 let listApplicationsCommand;
+let strikeCommand;
 
 try {
     pingCommand = require('./utility/ping.command').default;
@@ -63,7 +63,12 @@ try {
     console.error('Failed to load list-applications command:', e.message);
 }
 
-// Filter out any undefined imports and log warnings
+try {
+    strikeCommand = require('./moderation/strike.command').default;
+} catch (e) {
+    console.error('Failed to load strike command:', e.message);
+}
+
 const commandImports = [
     pingCommand,
     userCommand,
@@ -73,6 +78,7 @@ const commandImports = [
     delreminderCommand,
     showApplyButtonCommand,
     listApplicationsCommand,
+    strikeCommand,
 ];
 
 const commands: Command[] = commandImports.filter((cmd) => {
@@ -90,6 +96,7 @@ const textCommandImports = [
     remindmeCommand,
     remindersCommand,
     delreminderCommand,
+    strikeCommand,
 ];
 
 const textCommands: Command[] = textCommandImports.filter((cmd) => {

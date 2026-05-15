@@ -11,13 +11,13 @@ import {
     handleInviteCreate,
     handleInviteDelete,
 } from './handlers/inviteTracker';
+import { initStrikeManager, loadStrikes } from './services/strikeManager';
 import {
     Client,
     GatewayIntentBits,
     Partials,
     EmbedBuilder,
     Events,
-    TextBasedChannel,
     ChannelType,
 } from 'discord.js';
 
@@ -38,10 +38,10 @@ const client = new Client({
 client.once(Events.ClientReady, async () => {
     console.log('Discord Bot is Ready!');
 
-    // Initialize invite tracking
+    // Invite tracking
     await initializeInviteTracking(client);
 
-    // Load reminders from file
+    // Reminders
     loadReminders(async (userId, message, createdAt) => {
         try {
             const user = await client.users.fetch(userId);
@@ -56,40 +56,43 @@ client.once(Events.ClientReady, async () => {
         }
     });
 
-    // Load applications from file
+    // Applications
     loadApplications();
 
+    // Strike system — must init client reference BEFORE loading persisted data
+    initStrikeManager(client);
+    for (const guild of client.guilds.cache.values()) {
+        await loadStrikes(guild.id);
+    }
+
+    // Startup log
     const logsChannelId = process.env.STARTUP_LOGS_CHANNEL_ID;
-
     if (logsChannelId) {
-        const logsChannel = await client.channels.fetch(logsChannelId);
+        const logsChannel = await client.channels
+            .fetch(logsChannelId)
+            .catch(() => null);
+        if (logsChannel && logsChannel.isTextBased()) {
+            const mode =
+                process.env.NODE_ENV === 'development'
+                    ? 'development'
+                    : 'production';
 
-        // Type guard: ensure the channel is text-based
-        if (
-            !logsChannel ||
-            !('isTextBased' in logsChannel) ||
-            !logsChannel.isTextBased()
-        )
-            return;
-
-        const mode =
-            process.env.NODE_ENV === 'development'
-                ? 'development'
-                : 'production';
-
-        const embed = new EmbedBuilder()
-            .setDescription(
-                `## SignalBox is Online! :green_circle:
+            await logsChannel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription(
+                            `## SignalBox is Online! :green_circle:
 				Time: <t:${Math.floor(Date.now() / 1000)}:R>
 				Running in **${mode}** mode
 				OS: **${process.platform}**
 				Node.js Version: **${process.version}**
 				Discord.js Version: **${process.env.npm_package_dependencies_discord_js}**
 				`
-            )
-            .setColor('Green');
-
-        await logsChannel.send({ embeds: [embed] });
+                        )
+                        .setColor('Green'),
+                ],
+            });
+        }
     }
 
     if (process.env.NODE_ENV !== 'development')
@@ -108,15 +111,11 @@ client.on(Events.ThreadCreate, async (channel) => {
             const SupportRoleId = process.env.SUPPORT_ROLE_ID;
 
             await timeout(2000);
-
             const message = await channel.send(
                 'Auto-adding moderators and relevant roles to this thread...'
             );
-
             await timeout(2000);
-
             await message.edit(`<@&${ModeratorRoleId}>`);
-
             await timeout(2000);
 
             if (
@@ -127,7 +126,6 @@ client.on(Events.ThreadCreate, async (channel) => {
             }
 
             await timeout(1000);
-
             await message.delete();
         }
     } catch (error) {
@@ -135,17 +133,14 @@ client.on(Events.ThreadCreate, async (channel) => {
     }
 });
 
-// Track member joins for invite tracking
 client.on(Events.GuildMemberAdd, async (member) => {
     await handleMemberJoin(member);
 });
 
-// Track invite creation
 client.on(Events.InviteCreate, async (invite) => {
     await handleInviteCreate(invite);
 });
 
-// Track invite deletion (only updates cache, doesn't remove member data)
 client.on(Events.InviteDelete, async (invite) => {
     await handleInviteDelete(invite);
 });
@@ -157,10 +152,8 @@ async function timeout(time: number | undefined) {
 export type Handler = (args: { client: Client }) => void;
 
 const handlers: Handler[] = [commandHandler, textCommandHandler];
-
 handlers.forEach((handler) => handler({ client }));
 
-// Ensure the token exists
 if (!process.env.DISCORD_TOKEN) {
     console.error('ERROR: DISCORD_TOKEN is not defined in .env file');
     process.exit(1);
@@ -168,7 +161,6 @@ if (!process.env.DISCORD_TOKEN) {
 
 reloadGlobalSlashCommands()
     .then(() => {
-        // Log in to Discord
         client
             .login(process.env.DISCORD_TOKEN)
             .then(() => console.log('Logged into Discord Successfully'))

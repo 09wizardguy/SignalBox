@@ -9,6 +9,7 @@ let delreminderCommand;
 let showApplyButtonCommand;
 let listApplicationsCommand;
 let strikeCommand;
+let checkStrikeCommand;
 
 try {
     pingCommand = require('./utility/ping.command').default;
@@ -69,6 +70,12 @@ try {
     console.error('Failed to load strike command:', e.message);
 }
 
+try {
+    checkStrikeCommand = require('./moderation/checkstrike.command').default;
+} catch (e) {
+    console.error('Failed to load checkstrike command:', e.message);
+}
+
 const commandImports = [
     pingCommand,
     userCommand,
@@ -79,6 +86,7 @@ const commandImports = [
     showApplyButtonCommand,
     listApplicationsCommand,
     strikeCommand,
+    checkStrikeCommand,
 ];
 
 const commands: Command[] = commandImports.filter((cmd) => {
@@ -97,6 +105,7 @@ const textCommandImports = [
     remindersCommand,
     delreminderCommand,
     strikeCommand,
+    checkStrikeCommand,
 ];
 
 const textCommands: Command[] = textCommandImports.filter((cmd) => {

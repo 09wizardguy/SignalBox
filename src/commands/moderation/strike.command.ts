@@ -261,20 +261,6 @@ const strikeCommand: Command = {
             return;
         }
 
-        // Confirm the invoker has an advanced role
-        const advancedRoles = getAdvancedRoleIds();
-        if (advancedRoles.length > 0) {
-            const member = interaction.member as GuildMember;
-            if (!advancedRoles.some((id) => member.roles.cache.has(id))) {
-                await interaction.reply({
-                    content:
-                        '❌ You do not have permission to use this command.',
-                    flags: MessageFlags.Ephemeral,
-                });
-                return;
-            }
-        }
-
         // Defer so we have time to hit the Mojang API / RCON if needed
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 

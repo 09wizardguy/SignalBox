@@ -55,7 +55,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setCustomId('application_modal')
         .setTitle('Application Form');
 
-//-----INPUT TEXT BASED QUESTIONS BELOW THIS ----------
+    //-----INPUT TEXT BASED QUESTIONS BELOW THIS ----------
 
     // Minecraft Username input
     const minecraftUsernameInput = new TextInputBuilder()
@@ -86,11 +86,17 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setMaxLength(1000);
 
     // Add inputs to action rows
-    const minecraftUsernameRow = new ActionRowBuilder<TextInputBuilder>().addComponents(minecraftUsernameInput);
+    const minecraftUsernameRow =
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+            minecraftUsernameInput
+        );
 
-    const reasonRow = new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput);
+    const reasonRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+        reasonInput
+    );
 
-    const experienceRow = new ActionRowBuilder<TextInputBuilder>().addComponents(experienceInput);
+    const experienceRow =
+        new ActionRowBuilder<TextInputBuilder>().addComponents(experienceInput);
 
     modal.addComponents(minecraftUsernameRow, reasonRow, experienceRow);
 

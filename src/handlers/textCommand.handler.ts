@@ -1,4 +1,10 @@
-import { Events, Message, EmbedBuilder, Interaction, MessageFlags } from 'discord.js';
+import {
+    Events,
+    Message,
+    EmbedBuilder,
+    Interaction,
+    MessageFlags,
+} from 'discord.js';
 import { Handler } from '..';
 import { textCommands } from '../commands/_commands';
 import {

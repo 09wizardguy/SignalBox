@@ -213,36 +213,64 @@ function clearTimers(userId: string) {
     strikeTimers.delete(userId);
 }
 
+/**
+ * setTimeout silently breaks for delays above 2^31-1 ms (~24.8 days) because
+ * the internal timer uses a signed 32-bit integer — an overflow causes the
+ * callback to fire immediately.  This wrapper splits large delays into
+ * chained timeouts that each stay within the safe limit.  All intermediate
+ * handles are pushed to `handles` so clearTimers can cancel them at any point.
+ */
+const MAX_TIMEOUT_MS = 2_147_483_647; // 2^31 - 1
+
+function safeSetTimeout(
+    callback: () => void | Promise<void>,
+    delay: number,
+    handles: NodeJS.Timeout[]
+): void {
+    if (delay <= MAX_TIMEOUT_MS) {
+        const t = setTimeout(callback, delay);
+        handles.push(t);
+        return;
+    }
+    const t = setTimeout(() => {
+        safeSetTimeout(callback, delay - MAX_TIMEOUT_MS, handles);
+    }, MAX_TIMEOUT_MS);
+    handles.push(t);
+}
+
 function scheduleTransitions(record: StrikeRecord, guildId: string) {
     clearTimers(record.userId);
     const now = Date.now();
     const transitions = getTransitions(record.issuedLevel, record.expiresAt);
+
+    // Register the array first so safeSetTimeout can push all handles into it
     const timers: NodeJS.Timeout[] = [];
+    strikeTimers.set(record.userId, timers);
 
     for (const { fireAt, newLevel } of transitions) {
         const delay = fireAt - now;
         if (delay <= 0) continue; // already in the past — handled at load time
 
-        const t = setTimeout(async () => {
-            console.log(
-                `[StrikeManager] Transition: ${record.userId} → ${newLevel ?? 'cleared'}`
-            );
+        safeSetTimeout(
+            async () => {
+                console.log(
+                    `[StrikeManager] Transition: ${record.userId} → ${newLevel ?? 'cleared'}`
+                );
 
-            if (newLevel === null) {
-                strikes.delete(record.userId);
-            } else {
-                const existing = strikes.get(record.userId);
-                if (existing) existing.currentLevel = newLevel;
-            }
+                if (newLevel === null) {
+                    strikes.delete(record.userId);
+                } else {
+                    const existing = strikes.get(record.userId);
+                    if (existing) existing.currentLevel = newLevel;
+                }
 
-            saveStrikes();
-            await applyStrikeRole(guildId, record.userId, newLevel);
-        }, delay);
-
-        timers.push(t);
+                saveStrikes();
+                await applyStrikeRole(guildId, record.userId, newLevel);
+            },
+            delay,
+            timers
+        );
     }
-
-    strikeTimers.set(record.userId, timers);
 }
 
 // ---------------------------------------------------------------------------

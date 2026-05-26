@@ -37,10 +37,10 @@ export interface StrikeRecord {
 //     Day 83 → swap to STRIKE_1_ROLE only        ( 7 days remaining)
 //     Day 90 → remove all strike roles
 //
-//   Strike 2 timeline (90 days total):
+//   Strike 2 timeline (30 days total):
 //     Day  0 → apply STRIKE_2_ROLE only
-//     Day 83 → swap to STRIKE_1_ROLE only        ( 7 days remaining)
-//     Day 90 → remove all strike roles
+//     Day 23 → swap to STRIKE_1_ROLE only        ( 7 days remaining)
+//     Day 30 → remove all strike roles
 //
 //   Strike 1 timeline (7 days total):
 //     Day  0 → apply STRIKE_1_ROLE only
@@ -53,7 +53,8 @@ export interface StrikeRecord {
 //     (moderator explicitly downgraded; honour it)
 // ---------------------------------------------------------------------------
 
-const TOTAL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days (strikes 2 & 3)
+const STRIKE_3_TOTAL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days (strike 3)
+const STRIKE_2_TOTAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days (strike 2)
 const STRIKE_1_TOTAL_MS = 7 * 24 * 60 * 60 * 1000; //  7 days (strike 1)
 const TO_2_REMAINING_MS = 30 * 24 * 60 * 60 * 1000; // swap to strike 2 when 30 days remain
 const TO_1_REMAINING_MS = 7 * 24 * 60 * 60 * 1000; // swap to strike 1 when  7 days remain
@@ -329,7 +330,12 @@ export async function issueStrike(
     clearTimers(userId);
 
     const now = Date.now();
-    const totalMs = level === 1 ? STRIKE_1_TOTAL_MS : TOTAL_MS;
+    const totalMs =
+        level === 1
+            ? STRIKE_1_TOTAL_MS
+            : level === 2
+              ? STRIKE_2_TOTAL_MS
+              : STRIKE_3_TOTAL_MS;
 
     const record: StrikeRecord = {
         userId,

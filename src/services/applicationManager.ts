@@ -39,6 +39,7 @@ function saveApplications() {
                 likeTrains: app.likeTrains,
                 status: app.status,
                 createdAt: app.createdAt,
+                rejectedAt: app.rejectedAt,
                 messageId: app.messageId,
             };
         }
@@ -158,6 +159,9 @@ export function updateApplicationStatus(
     }
 
     application.status = status;
+    if (status === ApplicationStatus.REJECTED) {
+        application.rejectedAt = Date.now();
+    }
     saveApplications();
     return true;
 }

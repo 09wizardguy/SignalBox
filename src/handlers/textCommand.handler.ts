@@ -22,6 +22,7 @@ import {
 import {
     handleApproveButton,
     handleRejectButton,
+    handleRejectModalSubmit,
 } from '../buttons/handleApproveReject';
 
 const PREFIX = '!';
@@ -112,6 +113,8 @@ const textCommandHandler: Handler = ({ client }) => {
             try {
                 if (interaction.customId === 'application_modal') {
                     await handleApplicationModalSubmit(interaction);
+                } else if (interaction.customId.startsWith('reject_modal_')) {
+                    await handleRejectModalSubmit(interaction);
                 }
             } catch (error) {
                 console.error('Error handling modal submission:', error);

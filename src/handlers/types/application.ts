@@ -9,6 +9,7 @@ export interface Application {
     likeTrains?: string;
     status: ApplicationStatus;
     createdAt: number;
+    rejectedAt?: number;
     messageId?: string;
 }
 
@@ -29,5 +30,6 @@ export interface SerializedApplication {
     likeTrains?: string;
     status: ApplicationStatus;
     createdAt: number;
+    rejectedAt?: number;
     messageId?: string;
 }

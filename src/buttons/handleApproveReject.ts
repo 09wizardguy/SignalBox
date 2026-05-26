@@ -4,6 +4,11 @@ import {
     EmbedBuilder,
     GuildMember,
     MessageFlags,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder,
+    ModalSubmitInteraction,
 } from 'discord.js';
 import {
     getApplication,
@@ -151,31 +156,73 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
         return;
     }
 
+    // Show modal so moderator can optionally provide a reason
+    const modal = new ModalBuilder()
+        .setCustomId(`reject_modal_${userId}`)
+        .setTitle('Reject Application');
+
+    const reasonInput = new TextInputBuilder()
+        .setCustomId('reject_reason')
+        .setLabel('Reason for rejection (optional)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Leave blank to send no reason to the applicant.')
+        .setRequired(false)
+        .setMaxLength(1000);
+
+    modal.addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(reasonInput)
+    );
+
+    await interaction.showModal(modal);
+}
+
+export async function handleRejectModalSubmit(
+    interaction: ModalSubmitInteraction
+) {
+    const userId = interaction.customId.replace('reject_modal_', '');
+    const reason = interaction.fields.getTextInputValue('reject_reason').trim();
+
+    const application = getApplication(userId);
+
+    if (!application) {
+        await interaction.reply({
+            content: '❌ Application not found.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
     // Update status
     updateApplicationStatus(userId, ApplicationStatus.REJECTED);
 
-    // Update embed
-    const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+    // Update the original embed in the review channel
+    const updatedEmbed = EmbedBuilder.from(interaction.message!.embeds[0])
         .setColor(Colors.Red)
-        .setFooter({ text: `Rejected by ${interaction.user.username}` });
+        .setFooter({
+            text: `Rejected by ${interaction.user.username}${reason ? ` · ${reason}` : ''}`,
+        });
 
-    await interaction.update({
+    await interaction.message!.edit({
         embeds: [updatedEmbed],
         components: [],
     });
 
-    // Notify user
+    // Notify applicant via DM
     try {
         const user = await interaction.client.users.fetch(userId);
+        const cooldownEnd = Math.floor(
+            (Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000
+        );
+        const reasonLine = reason ? `\n\n**Reason:** ${reason}` : '';
         await user.send(
-            '❌ Unfortunately, your application has been **REJECTED**. Please contact a moderator for more information.'
+            `❌ Unfortunately, your application has been **REJECTED**.${reasonLine}\n\nYou may reapply <t:${cooldownEnd}:R> (on <t:${cooldownEnd}:F>). If you have questions, please contact a moderator.`
         );
     } catch (error) {
         console.error('Could not DM user:', error);
     }
 
-    await interaction.followUp({
-        content: `❌ Application rejected for <@${userId}>`,
+    await interaction.reply({
+        content: `❌ Application rejected for <@${userId}>${reason ? `\n**Reason:** ${reason}` : ''}`,
         flags: MessageFlags.Ephemeral,
     });
 }

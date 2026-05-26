@@ -41,12 +41,24 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             });
             return;
         } else if (existingApp.status === ApplicationStatus.REJECTED) {
-            await interaction.reply({
-                content:
-                    '❌ Your previous application was rejected. Please contact a moderator.',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
+            const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+            const rejectedAt = existingApp.rejectedAt ?? existingApp.createdAt;
+            const elapsed = Date.now() - rejectedAt;
+
+            if (elapsed < COOLDOWN_MS) {
+                const reopensAt = Math.floor((rejectedAt + COOLDOWN_MS) / 1000);
+                await interaction.reply({
+                    content: `❌ Your previous application was rejected. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
+                    flags: MessageFlags.Ephemeral,
+                });
+                return;
+            }
+
+            // Cooldown has passed — clear the old record and let them apply fresh
+            const { deleteApplication } = await import(
+                '../services/applicationManager'
+            );
+            deleteApplication(interaction.user.id);
         }
     }
 

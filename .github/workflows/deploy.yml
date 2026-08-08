@@ -1,0 +1,59 @@
+name: Deploy and Restart
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Build your project
+      - name: Build Application
+        run: |
+          npm run start
+          echo "Building the app..."
+          mkdir -p dist
+          echo "Compiled app goes here" > dist/app.bin
+
+      # 2. Sync files and clean old ones via pure SFTP
+      - name: Deploy via lftp
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASS: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y lftp
+          
+          # Create an lftp script file. 
+          # Using EOF allows us to safely inject the password variable without exposing it in the GitHub Action logs.
+          cat << EOF > deploy.lftp
+          set sftp:auto-confirm yes
+          open -u "${SFTP_USER}","${SFTP_PASS}" sftp://${SFTP_HOST}:${SFTP_PORT}
+          mirror --reverse --delete ./dist ~/app
+          bye
+          EOF
+          
+          # Run the script
+          lftp -f deploy.lftp
+
+      # 3. Trigger the Kinetic API to restart the server
+      - name: Restart Server via API
+        env:
+          SERVER_ID: ${{ secrets.SERVER_ID }}
+          HOST_API_TOKEN: ${{ secrets.HOST_API_TOKEN }}
+        run: |
+          curl --request POST \
+            --url 'https://kineticpanel.net/api/client/servers/${SERVER_ID}/power' \
+            --header 'Authorization: Bearer ${HOST_API_TOKEN}' \
+            --header 'Accept: application/json' \
+            --header 'Content-Type: application/json' \
+            --fail \
+            --data '{
+              "signal": "restart"
+            }'

@@ -292,9 +292,11 @@ const strikeCommand: Command = {
             sendLog: async (embed) => {
                 if (logChannel) {
                     await logChannel.send({ embeds: [embed] });
-                } else {
+                } else if (interaction.channel?.isTextBased()) {
                     // Fallback: send to same channel if log channel not configured
-                    await interaction.channel?.send({ embeds: [embed] });
+                    await (interaction.channel as TextChannel).send({
+                        embeds: [embed],
+                    });
                 }
             },
 
@@ -309,14 +311,14 @@ const strikeCommand: Command = {
     // -------------------------------------------------------------------------
     executeText: async (message: Message, args: string[]) => {
         if (!message.guild) {
-            await message.channel.send(
+            await (message.channel as TextChannel).send(
                 '❌ This command can only be used in a server.'
             );
             return;
         }
 
         if (args.length < 2) {
-            await message.channel.send(
+            await (message.channel as TextChannel).send(
                 '❌ Usage: `!strike <level> <userID or @mention>`\nLevel: 0 (remove), 1, 2, or 3.'
             );
             return;
@@ -342,7 +344,7 @@ const strikeCommand: Command = {
             fetchUser: (id) => message.client.users.fetch(id),
 
             ackReply: async (text) => {
-                await message.channel.send(text);
+                await (message.channel as TextChannel).send(text);
             },
 
             sendLog: async (embed) => {
@@ -350,12 +352,14 @@ const strikeCommand: Command = {
                     await logChannel.send({ embeds: [embed] });
                 } else {
                     // Fallback: send to same channel if log channel not configured
-                    await message.channel.send({ embeds: [embed] });
+                    await (message.channel as TextChannel).send({
+                        embeds: [embed],
+                    });
                 }
             },
 
             sendError: async (text) => {
-                await message.channel.send(text);
+                await (message.channel as TextChannel).send(text);
             },
         });
     },

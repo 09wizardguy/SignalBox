@@ -98,7 +98,7 @@ const userCommand: Command = {
                 .setName('target')
                 .setDescription('The user to look up (mention or ID)')
                 .setRequired(false)
-        ),
+        ) as SlashCommandBuilder,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {
         const targetInput = interaction.options.getString('target');
         let target: User;
@@ -129,6 +129,8 @@ const userCommand: Command = {
     },
     executeText: async (message: Message, args: string[]) => {
         let target: User;
+        const channel = message.channel;
+        if (!('send' in channel)) return;
 
         if (args.length > 0) {
             // Check for mention first
@@ -140,7 +142,7 @@ const userCommand: Command = {
                 try {
                     target = await message.client.users.fetch(userId);
                 } catch (error) {
-                    await message.channel.send(
+                    await channel.send(
                         '❌ Could not find that user. Please provide a valid user mention or ID.'
                     );
                     return;
@@ -155,7 +157,7 @@ const userCommand: Command = {
             : null;
 
         const embed = await createUserEmbed(target, member);
-        await message.channel.send({ embeds: [embed] });
+        await channel.send({ embeds: [embed] });
     },
 };
 

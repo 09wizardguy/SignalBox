@@ -47,9 +47,12 @@ export async function sendNoPermission(
         .setColor('Red');
 
     if (source instanceof Message) {
-        await source.channel.send({ embeds: [embed] });
+        const channel = source.channel;
+        if (channel && 'send' in channel) {
+            await channel.send({ embeds: [embed] });
+        }
     } else if (source.isRepliable()) {
-        await source.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await source.reply({ embeds: [embed], ephemeral: true });
     }
 }
 
@@ -64,8 +67,11 @@ export async function sendNoRole(
         .setColor('Red');
 
     if (source instanceof Message) {
-        await source.channel.send({ embeds: [embed] });
+        const channel = source.channel;
+        if (channel && 'send' in channel) {
+            await channel.send({ embeds: [embed] });
+        }
     } else if (source.isRepliable()) {
-        await source.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await source.reply({ embeds: [embed], ephemeral: true });
     }
 }

@@ -1,8 +1,5 @@
-import {
-    SlashCommandBuilder,
-    ChatInputCommandInteraction,
-    Message,
-} from 'discord.js';
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { ChatInputCommandInteraction, Message, TextChannel } from 'discord.js';
 import { Command } from '../../../../handlers/types/command';
 import { scheduleReminder } from '../functions/reminderManager';
 
@@ -24,17 +21,28 @@ const remindmeCommand: Command = {
                 .setName('message')
                 .setDescription('Reminder text')
                 .setRequired(false)
-        ),
+        ) as SlashCommandBuilder,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {
         const time = interaction.options.getString('time', true);
         const msg = interaction.options.getString('message') || '';
+        const channel = interaction.channel;
+
+        if (!channel?.isTextBased()) {
+            await interaction.reply({
+                content: 'Unable to set reminder: no valid text channel found.',
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const textChannel = channel as TextChannel;
 
         await scheduleReminder(
             interaction.user.id,
             time,
             msg,
             async (message, createdAt) => {
-                await interaction.channel?.send(
+                await textChannel.send(
                     `⏰ Reminder for <@${
                         interaction.user.id
                     }>: ${message} set <t:${Math.floor(createdAt / 1000)}:R>`
@@ -46,8 +54,19 @@ const remindmeCommand: Command = {
     },
     executeText: async (message: Message, args: string[]) => {
         const [time, ...reminderMessage] = args;
+        const channel = message.channel;
+
+        if (!channel.isTextBased()) {
+            await message.reply(
+                'Unable to set reminder: no valid text channel found.'
+            );
+            return;
+        }
+
+        const textChannel = channel as TextChannel;
+
         if (!time) {
-            await message.channel.send('Usage: !remindme <time> <message?>');
+            await textChannel.send('Usage: !remindme <time> <message?>');
             return;
         }
         const msg = reminderMessage.join(' ');
@@ -56,15 +75,14 @@ const remindmeCommand: Command = {
             message.author.id,
             time,
             msg,
-            (reminderText, createdAt) =>
-                message.channel.send(
-                    `⏰ Reminder for <@${
-                        message.author.id
-                    }>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`
-                )
+            async (reminderText, createdAt) => {
+                await textChannel.send(
+                    `⏰ Reminder for <@${message.author.id}>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`
+                );
+            }
         );
 
-        await message.channel.send(`⏰ Reminder set for **${time}**`);
+        await textChannel.send(`⏰ Reminder set for **${time}**`);
     },
 };
 

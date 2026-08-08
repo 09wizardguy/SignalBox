@@ -77,7 +77,11 @@ client.once(Events.ClientReady, async () => {
                     ? 'development'
                     : 'production';
 
-            await logsChannel.send({
+            const textChannel = logsChannel as unknown as {
+                send: (payload: { embeds: EmbedBuilder[] }) => Promise<unknown>;
+            };
+
+            await textChannel.send({
                 embeds: [
                     new EmbedBuilder()
                         .setDescription(

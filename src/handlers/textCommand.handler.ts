@@ -71,15 +71,18 @@ const textCommandHandler: Handler = ({ client }) => {
                 `Error executing text command ${command.name}:`,
                 error
             );
-            await message.channel.send({
-                embeds: [
-                    new EmbedBuilder()
-                        .setTitle('Error')
-                        .setDescription(
-                            'There was an error executing that command.'
-                        ),
-                ],
-            });
+
+            if ('send' in message.channel) {
+                await message.channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setTitle('Error')
+                            .setDescription(
+                                'There was an error executing that command.'
+                            ),
+                    ],
+                });
+            }
         }
     });
 

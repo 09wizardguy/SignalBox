@@ -34,11 +34,11 @@ const remindersCommand: Command = {
     executeText: async (message: Message) => {
         const active = listReminders(message.author.id);
         if (active.length === 0) {
-            await message.channel.send('✅ You have no active reminders.');
+            await message.reply('✅ You have no active reminders.');
             return;
         }
 
-        await message.channel.send(
+        await message.reply(
             `📋 Your reminders:\n${active
                 .map(
                     (r, i) =>

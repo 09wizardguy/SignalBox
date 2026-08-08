@@ -27,7 +27,7 @@ const listApplicationsCommand: Command = {
                     { name: 'Approved', value: ApplicationStatus.APPROVED },
                     { name: 'Rejected', value: ApplicationStatus.REJECTED }
                 )
-        ),
+        ) as SlashCommandBuilder,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {
         const statusFilter = interaction.options.getString(
             'status'

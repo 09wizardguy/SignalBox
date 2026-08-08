@@ -155,17 +155,16 @@ const checkStrikeCommand: Command = {
     },
 
     executeText: async (message: Message, args: string[]) => {
+        const channel = message.channel;
+        if (!('send' in channel)) return;
+
         if (!message.guild) {
-            await message.channel.send(
-                '❌ This command can only be used in a server.'
-            );
+            await channel.send('❌ This command can only be used in a server.');
             return;
         }
 
         if (args.length < 1) {
-            await message.channel.send(
-                '❌ Usage: `!checkstrike <userID or @mention>`'
-            );
+            await channel.send('❌ Usage: `!checkstrike <userID or @mention>`');
             return;
         }
 
@@ -175,14 +174,14 @@ const checkStrikeCommand: Command = {
         );
 
         if (!targetUser) {
-            await message.channel.send(
+            await channel.send(
                 '❌ Could not find that user. Provide a valid mention or Discord ID.'
             );
             return;
         }
 
         const record = getStrike(targetUser.id);
-        await message.channel.send({
+        await channel.send({
             embeds: [buildStrikeEmbed(targetUser, record)],
         });
     },

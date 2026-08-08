@@ -23,6 +23,18 @@ import {
     formatUUID,
 } from '../services/minecraftService';
 
+type PendingApplicationData = {
+    minecraftUsername: string;
+    minecraftUUID?: string;
+    isValidMinecraftAccount: boolean;
+    reason?: string;
+    experience?: string;
+};
+
+declare global {
+    var pendingApplications: Map<string, PendingApplicationData> | undefined;
+}
+
 export async function handleApplyButton(interaction: ButtonInteraction) {
     // Check if user already has an application
     const existingApp = getApplication(interaction.user.id);
@@ -55,9 +67,8 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             }
 
             // Cooldown has passed — clear the old record and let them apply fresh
-            const { deleteApplication } = await import(
-                '../services/applicationManager'
-            );
+            const { deleteApplication } =
+                await import('../services/applicationManager');
             deleteApplication(interaction.user.id);
         }
     }

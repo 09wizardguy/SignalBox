@@ -3,6 +3,13 @@ const js = require('@eslint/js');
 module.exports = [
     js.configs.recommended,
     {
+        ignores: [
+            'node_modules/',
+            'dist/',
+            'data/',
+            '.vscode/',
+            'eslint.config.js',
+        ],
         languageOptions: {
             ecmaVersion: 'latest',
         },

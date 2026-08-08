@@ -68,7 +68,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
 
             // Cooldown has passed — clear the old record and let them apply fresh
             const { deleteApplication } =
-                await import('../services/applicationManager');
+                await import('../services/applicationManager.js');
             deleteApplication(interaction.user.id);
         }
     }

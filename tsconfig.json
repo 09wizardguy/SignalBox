@@ -1,13 +1,12 @@
 {
     "compilerOptions": {
         "strict": true,
-        "module": "esnext",
+        "module": "Node16",
         "target": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "node16",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "skipLibCheck": true,
-        "ignoreDeprecations": "6.0",
         "noEmit": true
     }
 }

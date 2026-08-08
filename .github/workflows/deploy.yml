@@ -6,23 +6,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Node.js
-        uses: actions/setup-node@v6
-        with:
-            node-version: 24
-            package-manager-cache: false
-            registry-url: https://registry.npmjs.org/
-
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Build your project
-      - name: Build Application
-        run: |
-          npm run start
-          echo "Building the app..."
-          mkdir -p dist
-          echo "Compiled app goes here" > dist/app.bin
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck application
+        run: npm run typecheck
+
+      - name: Build application
+        run: npm run build
 
       # 2. Sync files and clean old ones via pure SFTP
       - name: Deploy via lftp

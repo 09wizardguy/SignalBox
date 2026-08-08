@@ -16,6 +16,8 @@
     "scripts": {
         "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
         "start": "tsx src/index.ts",
+        "build": "tsup src/index.ts --format cjs --platform node --target node20 --out-dir dist --clean --sourcemap --noExternal",
+        "typecheck": "tsc --noEmit",
         "lint": "tsc && eslint . && prettier --check .",
         "lint:fix": "prettier --write ."
     },

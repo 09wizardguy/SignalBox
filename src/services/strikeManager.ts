@@ -1,6 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import { Client, GuildMember } from 'discord.js';
+import { getPersistence, PersistenceCollection } from './persistence';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,24 +75,37 @@ export function initStrikeManager(client: Client) {
 // Persistence
 // ---------------------------------------------------------------------------
 
-const STRIKES_FILE = path.join(process.cwd(), 'data', 'strikes.json');
+async function saveStrike(record: StrikeRecord): Promise<void> {
+    try {
+        await getPersistence().set(
+            PersistenceCollection.Strikes,
+            record.userId,
+            { ...record }
+        );
 
-function ensureDataDir() {
-    const dir = path.dirname(STRIKES_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        console.log(`[StrikeManager] Saved strike for ${record.userId}.`);
+    } catch (err) {
+        console.error(
+            `[StrikeManager] Error saving strike for ${record.userId}:`,
+            err
+        );
+
+        throw err;
+    }
 }
 
-function saveStrikes() {
+async function deleteStrike(userId: string): Promise<void> {
     try {
-        ensureDataDir();
-        const data: Record<string, StrikeRecord> = {};
-        for (const [userId, record] of strikes.entries()) {
-            data[userId] = { ...record }; // plain object — fully JSON-serializable
-        }
-        fs.writeFileSync(STRIKES_FILE, JSON.stringify(data, null, 2));
-        console.log(`[StrikeManager] Saved ${strikes.size} strike(s) to disk.`);
+        await getPersistence().delete(PersistenceCollection.Strikes, userId);
+
+        console.log(`[StrikeManager] Deleted strike for ${userId}.`);
     } catch (err) {
-        console.error('[StrikeManager] Error saving strikes:', err);
+        console.error(
+            `[StrikeManager] Error deleting strike for ${userId}:`,
+            err
+        );
+
+        throw err;
     }
 }
 
@@ -114,7 +126,7 @@ function getRoleIdForLevel(level: 1 | 2 | 3): string | undefined {
 
 /**
  * Removes all three strike roles from the member, then applies only the role
- * that matches `targetLevel` exactly.  Pass `null` to just clear all roles.
+ * that matches `targetLevel` exactly. Pass `null` to just clear all roles.
  *
  *   targetLevel 3 → STRIKE_3_ROLE only
  *   targetLevel 2 → STRIKE_2_ROLE only
@@ -132,6 +144,7 @@ async function applyStrikeRole(
         );
         return;
     }
+
     try {
         const guild =
             _client.guilds.cache.get(guildId) ??
@@ -170,13 +183,18 @@ async function applyStrikeRole(
         // Apply only the single role for the target level
         if (targetLevel !== null) {
             const roleId = getRoleIdForLevel(targetLevel);
+
             if (roleId) {
                 await member.roles.add(roleId).catch(console.error);
             }
         }
 
         console.log(
-            `[StrikeManager] Applied ${targetLevel !== null ? `STRIKE_${targetLevel}_ROLE` : 'no strike role'} to ${userId}`
+            `[StrikeManager] Applied ${
+                targetLevel !== null
+                    ? `STRIKE_${targetLevel}_ROLE`
+                    : 'no strike role'
+            } to ${userId}`
         );
     } catch (err) {
         console.error(`[StrikeManager] Role error for ${userId}:`, err);
@@ -194,31 +212,55 @@ async function applyStrikeRole(
 function getTransitions(
     issuedLevel: 1 | 2 | 3,
     expiresAt: number
-): Array<{ fireAt: number; newLevel: 1 | 2 | 3 | null }> {
-    const t: Array<{ fireAt: number; newLevel: 1 | 2 | 3 | null }> = [];
+): Array<{
+    fireAt: number;
+    newLevel: 1 | 2 | 3 | null;
+}> {
+    const t: Array<{
+        fireAt: number;
+        newLevel: 1 | 2 | 3 | null;
+    }> = [];
 
     if (issuedLevel === 3) {
-        t.push({ fireAt: expiresAt - TO_2_REMAINING_MS, newLevel: 2 }); // day 60
-        t.push({ fireAt: expiresAt - TO_1_REMAINING_MS, newLevel: 1 }); // day 83
+        t.push({
+            fireAt: expiresAt - TO_2_REMAINING_MS,
+            newLevel: 2,
+        }); // day 60
+
+        t.push({
+            fireAt: expiresAt - TO_1_REMAINING_MS,
+            newLevel: 1,
+        }); // day 83
     } else if (issuedLevel === 2) {
-        t.push({ fireAt: expiresAt - TO_1_REMAINING_MS, newLevel: 1 }); // day 83
+        t.push({
+            fireAt: expiresAt - TO_1_REMAINING_MS,
+            newLevel: 1,
+        }); // day 23
     }
+
     // Strike 1 has no intermediate steps
 
-    t.push({ fireAt: expiresAt, newLevel: null }); // final expiry
+    t.push({
+        fireAt: expiresAt,
+        newLevel: null,
+    }); // final expiry
+
     return t;
 }
 
 function clearTimers(userId: string) {
-    for (const t of strikeTimers.get(userId) ?? []) clearTimeout(t);
+    for (const t of strikeTimers.get(userId) ?? []) {
+        clearTimeout(t);
+    }
+
     strikeTimers.delete(userId);
 }
 
 /**
  * setTimeout silently breaks for delays above 2^31-1 ms (~24.8 days) because
  * the internal timer uses a signed 32-bit integer — an overflow causes the
- * callback to fire immediately.  This wrapper splits large delays into
- * chained timeouts that each stay within the safe limit.  All intermediate
+ * callback to fire immediately. This wrapper splits large delays into
+ * chained timeouts that each stay within the safe limit. All intermediate
  * handles are pushed to `handles` so clearTimers can cancel them at any point.
  */
 const MAX_TIMEOUT_MS = 2_147_483_647; // 2^31 - 1
@@ -233,39 +275,68 @@ function safeSetTimeout(
         handles.push(t);
         return;
     }
+
     const t = setTimeout(() => {
         safeSetTimeout(callback, delay - MAX_TIMEOUT_MS, handles);
     }, MAX_TIMEOUT_MS);
+
     handles.push(t);
 }
 
 function scheduleTransitions(record: StrikeRecord, guildId: string) {
     clearTimers(record.userId);
+
     const now = Date.now();
     const transitions = getTransitions(record.issuedLevel, record.expiresAt);
 
     // Register the array first so safeSetTimeout can push all handles into it
     const timers: NodeJS.Timeout[] = [];
+
     strikeTimers.set(record.userId, timers);
 
     for (const { fireAt, newLevel } of transitions) {
         const delay = fireAt - now;
-        if (delay <= 0) continue; // already in the past — handled at load time
+
+        if (delay <= 0) {
+            continue;
+        }
 
         safeSetTimeout(
             async () => {
                 console.log(
-                    `[StrikeManager] Transition: ${record.userId} → ${newLevel ?? 'cleared'}`
+                    `[StrikeManager] Transition: ${record.userId} → ${
+                        newLevel ?? 'cleared'
+                    }`
                 );
 
                 if (newLevel === null) {
                     strikes.delete(record.userId);
+
+                    try {
+                        await deleteStrike(record.userId);
+                    } catch (err) {
+                        console.error(
+                            `[StrikeManager] Failed to delete expired strike for ${record.userId}:`,
+                            err
+                        );
+                    }
                 } else {
                     const existing = strikes.get(record.userId);
-                    if (existing) existing.currentLevel = newLevel;
+
+                    if (existing) {
+                        existing.currentLevel = newLevel;
+
+                        try {
+                            await saveStrike(existing);
+                        } catch (err) {
+                            console.error(
+                                `[StrikeManager] Failed to save strike transition for ${record.userId}:`,
+                                err
+                            );
+                        }
+                    }
                 }
 
-                saveStrikes();
                 await applyStrikeRole(guildId, record.userId, newLevel);
             },
             delay,
@@ -288,19 +359,31 @@ function effectiveLevelNow(
     expiresAt: number
 ): 1 | 2 | 3 | null {
     const remaining = expiresAt - Date.now();
-    if (remaining <= 0) return null;
+
+    if (remaining <= 0) {
+        return null;
+    }
 
     // Strike 1 has only one phase; it either hasn't expired or it has
-    if (issuedLevel === 1) return 1;
+    if (issuedLevel === 1) {
+        return 1;
+    }
 
     // Strike 2: transitions to level 1 when ≤ 7 days remain
     if (issuedLevel === 2) {
         return remaining <= TO_1_REMAINING_MS ? 1 : 2;
     }
 
-    // Strike 3: 3 → 2 at 30 days remaining, 2 → 1 at 7 days remaining
-    if (remaining <= TO_1_REMAINING_MS) return 1;
-    if (remaining <= TO_2_REMAINING_MS) return 2;
+    // Strike 3: 3 → 2 at 30 days remaining,
+    // 2 → 1 at 7 days remaining
+    if (remaining <= TO_1_REMAINING_MS) {
+        return 1;
+    }
+
+    if (remaining <= TO_2_REMAINING_MS) {
+        return 2;
+    }
+
     return 3;
 }
 
@@ -330,6 +413,7 @@ export async function issueStrike(
     clearTimers(userId);
 
     const now = Date.now();
+
     const totalMs =
         level === 1
             ? STRIKE_1_TOTAL_MS
@@ -347,7 +431,8 @@ export async function issueStrike(
     };
 
     strikes.set(userId, record);
-    saveStrikes();
+
+    await saveStrike(record);
 
     // Apply only the role for the issued level
     await applyStrikeRole(guildId, userId, level);
@@ -365,13 +450,17 @@ export async function removeStrike(
     userId: string,
     guildId: string
 ): Promise<boolean> {
-    if (!strikes.has(userId)) return false;
+    if (!strikes.has(userId)) {
+        return false;
+    }
 
     clearTimers(userId);
     strikes.delete(userId);
-    saveStrikes();
+
+    await deleteStrike(userId);
 
     await applyStrikeRole(guildId, userId, null);
+
     return true;
 }
 
@@ -392,29 +481,30 @@ export function getAllStrikes(): StrikeRecord[] {
  */
 export async function loadStrikes(guildId: string) {
     try {
-        ensureDataDir();
+        const persistedStrikes = await getPersistence().getAll<StrikeRecord>(
+            PersistenceCollection.Strikes
+        );
 
-        if (!fs.existsSync(STRIKES_FILE)) {
+        if (persistedStrikes.length === 0) {
             console.log(
-                '[StrikeManager] No strikes file found, starting fresh.'
+                '[StrikeManager] No persisted strikes found, starting fresh.'
             );
             return;
         }
 
-        const raw = fs.readFileSync(STRIKES_FILE, 'utf-8').trim();
-        if (!raw || raw === '{}') {
-            console.log('[StrikeManager] Strikes file is empty.');
-            return;
-        }
-
-        const data: Record<string, StrikeRecord> = JSON.parse(raw);
         let loaded = 0;
+        let expired = 0;
 
-        for (const [userId, record] of Object.entries(data)) {
+        for (const record of persistedStrikes) {
             // Migrate records written before the issuedLevel/currentLevel split
-            if (!(record as any).issuedLevel) {
-                (record as any).issuedLevel = (record as any).level ?? 1;
-                (record as any).currentLevel = (record as any).level ?? 1;
+            const legacyRecord = record as StrikeRecord & {
+                level?: 1 | 2 | 3;
+            };
+
+            if (!legacyRecord.issuedLevel) {
+                legacyRecord.issuedLevel = legacyRecord.level ?? 1;
+
+                legacyRecord.currentLevel = legacyRecord.level ?? 1;
             }
 
             const correctLevel = effectiveLevelNow(
@@ -423,36 +513,51 @@ export async function loadStrikes(guildId: string) {
             );
 
             if (correctLevel === null) {
-                // Expired while bot was offline — clean up roles and skip
+                // Expired while bot was offline — clean up roles and remove
+                // the persisted record.
                 console.log(
-                    `[StrikeManager] Strike for ${userId} expired offline, removing roles.`
+                    `[StrikeManager] Strike for ${record.userId} expired offline, removing roles.`
                 );
-                await applyStrikeRole(guildId, userId, null);
+
+                await applyStrikeRole(guildId, record.userId, null);
+
+                await deleteStrike(record.userId);
+
+                expired++;
                 continue;
             }
 
             // Update currentLevel to reflect any transitions that fired offline
             record.currentLevel = correctLevel;
-            strikes.set(userId, record);
+
+            strikes.set(record.userId, record);
 
             // Ensure the member has exactly the right single role right now
-            await applyStrikeRole(guildId, userId, correctLevel);
+            await applyStrikeRole(guildId, record.userId, correctLevel);
 
-            // Reschedule remaining transitions (always from issuedLevel, not currentLevel)
+            // Persist any migration/current-level correction
+            await saveStrike(record);
+
+            // Reschedule remaining transitions
+            // (always from issuedLevel, not currentLevel)
             scheduleTransitions(record, guildId);
+
             loaded++;
         }
 
-        // Persist any corrections (expired records removed, levels corrected)
-        saveStrikes();
         console.log(
             `[StrikeManager] Loaded and scheduled ${loaded} active strike(s).`
         );
+
+        if (expired > 0) {
+            console.log(
+                `[StrikeManager] Removed ${expired} expired strike(s).`
+            );
+        }
     } catch (err) {
         console.error('[StrikeManager] Error loading strikes:', err);
-        try {
-            fs.writeFileSync(STRIKES_FILE, '{}');
-        } catch (_) {}
+
+        throw err;
     }
 }
 
@@ -462,15 +567,30 @@ export async function loadStrikes(guildId: string) {
  */
 export function formatTimeRemaining(record: StrikeRecord): string {
     const ms = record.expiresAt - Date.now();
-    if (ms <= 0) return 'Expired';
+
+    if (ms <= 0) {
+        return 'Expired';
+    }
 
     const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+
     const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+
     const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
 
     const parts: string[] = [];
-    if (days > 0) parts.push(`${days}d`);
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
+
+    if (days > 0) {
+        parts.push(`${days}d`);
+    }
+
+    if (hours > 0) {
+        parts.push(`${hours}h`);
+    }
+
+    if (minutes > 0) {
+        parts.push(`${minutes}m`);
+    }
+
     return parts.join(' ') || '<1m';
 }

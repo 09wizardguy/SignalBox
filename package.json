@@ -18,6 +18,7 @@
         "start": "tsx src/index.ts",
         "build": "tsup",
         "typecheck": "tsc --noEmit",
+        "migrate:mysql": "tsx src/services/persistence/migrateMysql.ts",
         "lint": "tsc && eslint . && prettier --check .",
         "lint:fix": "prettier --write ."
     },
@@ -25,6 +26,7 @@
         "discord.js": "^14.22.1",
         "dotenv": "^17.2.2",
         "moment-timezone": "^0.6.0",
+        "mysql2": "^3.23.3",
         "prettier": "^3.6.2",
         "rcon-client": "^4.2.5",
         "tsx": "^4.20.5"

@@ -69,7 +69,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             // Cooldown has passed — clear the old record and let them apply fresh
             const { deleteApplication } =
                 await import('../services/applicationManager.js');
-            deleteApplication(interaction.user.id);
+            await deleteApplication(interaction.user.id);
         }
     }
 
@@ -209,7 +209,7 @@ export async function handleTrainSelectMenu(
     }
 
     // Create application with all data
-    const application = createApplication(
+    const application = await createApplication(
         userId,
         interaction.user.username,
         pendingData.minecraftUsername,
@@ -332,5 +332,5 @@ async function sendToModerators(
     });
 
     // Store message ID
-    updateApplicationMessageId(interaction.user.id, message.id);
+    await updateApplicationMessageId(interaction.user.id, message.id);
 }

@@ -1,103 +1,73 @@
-import fs from 'fs';
-import path from 'path';
 import {
     Application,
     ApplicationStatus,
     SerializedApplication,
 } from '../handlers/types/application';
 
+import { getPersistence, PersistenceCollection } from './persistence';
+
 const applications = new Map<string, Application>();
-const APPLICATIONS_FILE = path.join(process.cwd(), 'data', 'applications.json');
 
 /**
- * Ensure the data directory exists
+ * Save a single application using the configured persistence provider.
  */
-function ensureDataDir() {
-    const dir = path.dirname(APPLICATIONS_FILE);
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+async function saveApplication(application: Application): Promise<void> {
+    const serialized: SerializedApplication = {
+        userId: application.userId,
+        username: application.username,
+        minecraftUsername: application.minecraftUsername,
+        minecraftUUID: application.minecraftUUID,
+        isValidMinecraftAccount: application.isValidMinecraftAccount,
+        reason: application.reason,
+        experience: application.experience,
+        likeTrains: application.likeTrains,
+        status: application.status,
+        createdAt: application.createdAt,
+        rejectedAt: application.rejectedAt,
+        messageId: application.messageId,
+    };
+
+    await getPersistence().set(
+        PersistenceCollection.Applications,
+        application.userId,
+        serialized
+    );
 }
 
 /**
- * Save applications to JSON file
+ * Load applications from the configured persistence provider.
  */
-function saveApplications() {
+export async function loadApplications(): Promise<void> {
     try {
-        ensureDataDir();
-        const data: Record<string, SerializedApplication> = {};
+        const entries =
+            await getPersistence().getAllEntries<SerializedApplication>(
+                PersistenceCollection.Applications
+            );
 
-        for (const [userId, app] of applications.entries()) {
-            data[userId] = {
-                userId: app.userId,
-                username: app.username,
-                minecraftUsername: app.minecraftUsername,
-                minecraftUUID: app.minecraftUUID,
-                isValidMinecraftAccount: app.isValidMinecraftAccount,
-                reason: app.reason,
-                experience: app.experience,
-                likeTrains: app.likeTrains,
-                status: app.status,
-                createdAt: app.createdAt,
-                rejectedAt: app.rejectedAt,
-                messageId: app.messageId,
-            };
-        }
+        applications.clear();
 
-        fs.writeFileSync(APPLICATIONS_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving applications:', error);
-    }
-}
-
-/**
- * Load applications from JSON file
- */
-export function loadApplications() {
-    try {
-        ensureDataDir();
-
-        if (!fs.existsSync(APPLICATIONS_FILE)) {
-            console.log('No applications file found, starting fresh.');
-            return;
-        }
-
-        const fileContent = fs.readFileSync(APPLICATIONS_FILE, 'utf-8').trim();
-
-        // Check if file is empty or only contains whitespace
-        if (!fileContent) {
-            console.log('Applications file is empty, starting fresh.');
-            // Initialize with empty object
-            fs.writeFileSync(APPLICATIONS_FILE, '{}');
-            return;
-        }
-
-        const data = JSON.parse(fileContent);
-
-        for (const [userId, app] of Object.entries(data)) {
+        for (const [userId, app] of entries) {
             applications.set(userId, app as Application);
+        }
+
+        if (applications.size === 0) {
+            console.log('No applications found, starting fresh.');
+
+            return;
         }
 
         console.log(`Loaded ${applications.size} applications.`);
     } catch (error) {
         console.error('Error loading applications:', error);
-        console.log('Creating fresh applications file...');
-        // Reset file with empty object if corrupted
-        try {
-            fs.writeFileSync(APPLICATIONS_FILE, '{}');
-        } catch (writeError) {
-            console.error(
-                'Could not create fresh applications file:',
-                writeError
-            );
-        }
+
+        throw error;
     }
 }
 
 /**
- * Create a new application
+ * Create a new application.
  */
-export function createApplication(
+export async function createApplication(
     userId: string,
     username: string,
     minecraftUsername: string,
@@ -106,7 +76,7 @@ export function createApplication(
     reason?: string,
     experience?: string,
     likeTrains?: string
-): Application {
+): Promise<Application> {
     const application: Application = {
         userId,
         username,
@@ -121,19 +91,21 @@ export function createApplication(
     };
 
     applications.set(userId, application);
-    saveApplications();
+
+    await saveApplication(application);
+
     return application;
 }
 
 /**
- * Get application by user ID
+ * Get application by user ID.
  */
 export function getApplication(userId: string): Application | null {
     return applications.get(userId) || null;
 }
 
 /**
- * Get all applications, optionally filtered by status
+ * Get all applications, optionally filtered by status.
  */
 export function getAllApplications(status?: ApplicationStatus): Application[] {
     const allApps = Array.from(applications.values());
@@ -146,12 +118,12 @@ export function getAllApplications(status?: ApplicationStatus): Application[] {
 }
 
 /**
- * Update application status
+ * Update application status.
  */
-export function updateApplicationStatus(
+export async function updateApplicationStatus(
     userId: string,
     status: ApplicationStatus
-): boolean {
+): Promise<boolean> {
     const application = applications.get(userId);
 
     if (!application) {
@@ -159,20 +131,23 @@ export function updateApplicationStatus(
     }
 
     application.status = status;
+
     if (status === ApplicationStatus.REJECTED) {
         application.rejectedAt = Date.now();
     }
-    saveApplications();
+
+    await saveApplication(application);
+
     return true;
 }
 
 /**
- * Update application message ID
+ * Update application message ID.
  */
-export function updateApplicationMessageId(
+export async function updateApplicationMessageId(
     userId: string,
     messageId: string
-): boolean {
+): Promise<boolean> {
     const application = applications.get(userId);
 
     if (!application) {
@@ -180,19 +155,23 @@ export function updateApplicationMessageId(
     }
 
     application.messageId = messageId;
-    saveApplications();
+
+    await saveApplication(application);
+
     return true;
 }
 
 /**
- * Delete an application
+ * Delete an application.
  */
-export function deleteApplication(userId: string): boolean {
+export async function deleteApplication(userId: string): Promise<boolean> {
     const deleted = applications.delete(userId);
 
-    if (deleted) {
-        saveApplications();
+    if (!deleted) {
+        return false;
     }
 
-    return deleted;
+    await getPersistence().delete(PersistenceCollection.Applications, userId);
+
+    return true;
 }

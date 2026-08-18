@@ -20,7 +20,7 @@ const delreminderCommand: Command = {
     data: delreminderCommandData,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {
         const num = interaction.options.getInteger('num', true);
-        const success = deleteReminder(interaction.user.id, num - 1);
+        const success = await deleteReminder(interaction.user.id, num - 1);
 
         if (success) {
             await interaction.reply(`🗑️ Reminder #${num} deleted.`);
@@ -36,7 +36,7 @@ const delreminderCommand: Command = {
             return;
         }
 
-        const success = deleteReminder(message.author.id, num - 1);
+        const success = await deleteReminder(message.author.id, num - 1);
         if (success) {
             await message.reply(`🗑️ Reminder #${num} deleted.`);
         } else {

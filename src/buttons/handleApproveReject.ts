@@ -55,7 +55,7 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     // Update status
-    updateApplicationStatus(userId, ApplicationStatus.APPROVED);
+    await updateApplicationStatus(userId, ApplicationStatus.APPROVED);
 
     // Add role if configured
     const approvedRoleId = process.env.APPROVED_APPLICATION_ROLE_ID;
@@ -193,7 +193,7 @@ export async function handleRejectModalSubmit(
     }
 
     // Update status
-    updateApplicationStatus(userId, ApplicationStatus.REJECTED);
+    await updateApplicationStatus(userId, ApplicationStatus.REJECTED);
 
     // Update the original embed in the review channel
     const updatedEmbed = EmbedBuilder.from(interaction.message!.embeds[0])

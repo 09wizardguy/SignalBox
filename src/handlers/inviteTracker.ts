@@ -1,6 +1,6 @@
 import { Client, Collection, Guild, Invite, GuildMember } from 'discord.js';
-import fs from 'fs';
-import path from 'path';
+
+import { getPersistence, PersistenceCollection } from '../services/persistence';
 
 interface InviteData {
     code: string;
@@ -17,87 +17,43 @@ interface MemberInviteInfo {
 }
 
 const guildInvites = new Collection<string, Collection<string, InviteData>>();
-const memberInvites = new Map<string, MemberInviteInfo>(); // userId -> invite info
-const INVITES_FILE = path.join(process.cwd(), 'data', 'invites.json');
+
+const memberInvites = new Map<string, MemberInviteInfo>();
 
 /**
- * Ensure the data directory exists
+ * Save member invite data using the configured persistence provider.
  */
-function ensureDataDir() {
-    const dir = path.dirname(INVITES_FILE);
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+async function saveMemberInvite(
+    userId: string,
+    info: MemberInviteInfo
+): Promise<void> {
+    await getPersistence().set(PersistenceCollection.Invites, userId, info);
 }
 
 /**
- * Save member invite data to JSON
+ * Load member invite data.
  */
-function saveMemberInvites() {
-    try {
-        ensureDataDir();
-        const data: Record<string, MemberInviteInfo> = {};
+async function loadMemberInvites(): Promise<void> {
+    const entries = await getPersistence().getAllEntries<MemberInviteInfo>(
+        PersistenceCollection.Invites
+    );
 
-        for (const [userId, info] of memberInvites.entries()) {
-            data[userId] = info;
-        }
+    memberInvites.clear();
 
-        fs.writeFileSync(INVITES_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error saving invite data:', error);
+    for (const [userId, info] of entries) {
+        memberInvites.set(userId, info);
     }
+
+    console.log(`Loaded invite data for ${memberInvites.size} members.`);
 }
 
 /**
- * Load member invite data from JSON
+ * Cache all invites for a guild.
  */
-function loadMemberInvites() {
-    try {
-        ensureDataDir();
-
-        if (!fs.existsSync(INVITES_FILE)) {
-            console.log('No invite data file found, starting fresh.');
-            return;
-        }
-
-        const fileContent = fs.readFileSync(INVITES_FILE, 'utf-8').trim();
-
-        // Check if file is empty or only contains whitespace
-        if (!fileContent) {
-            console.log('Invite data file is empty, starting fresh.');
-            // Initialize with empty object
-            fs.writeFileSync(INVITES_FILE, '{}');
-            return;
-        }
-
-        const data = JSON.parse(fileContent);
-
-        for (const [userId, info] of Object.entries(data)) {
-            memberInvites.set(userId, info as MemberInviteInfo);
-        }
-
-        console.log(`Loaded invite data for ${memberInvites.size} members.`);
-    } catch (error) {
-        console.error('Error loading invite data:', error);
-        console.log('Creating fresh invite data file...');
-        // Reset file with empty object if corrupted
-        try {
-            fs.writeFileSync(INVITES_FILE, '{}');
-        } catch (writeError) {
-            console.error(
-                'Could not create fresh invite data file:',
-                writeError
-            );
-        }
-    }
-}
-
-/**
- * Cache all invites for a guild
- */
-async function cacheGuildInvites(guild: Guild) {
+async function cacheGuildInvites(guild: Guild): Promise<void> {
     try {
         const invites = await guild.invites.fetch();
+
         const inviteCache = new Collection<string, InviteData>();
 
         invites.forEach((invite) => {
@@ -116,10 +72,10 @@ async function cacheGuildInvites(guild: Guild) {
 }
 
 /**
- * Initialize invite tracking for all guilds
+ * Initialize invite tracking for all guilds.
  */
-export async function initializeInviteTracking(client: Client) {
-    loadMemberInvites();
+export async function initializeInviteTracking(client: Client): Promise<void> {
+    await loadMemberInvites();
 
     for (const guild of client.guilds.cache.values()) {
         await cacheGuildInvites(guild);
@@ -129,39 +85,41 @@ export async function initializeInviteTracking(client: Client) {
 }
 
 /**
- * Handle new member join - detect which invite was used
+ * Handle new member join - detect which invite was used.
  */
-export async function handleMemberJoin(member: GuildMember) {
+export async function handleMemberJoin(member: GuildMember): Promise<void> {
     try {
         const guild = member.guild;
+
         const cachedInvites = guildInvites.get(guild.id);
 
         if (!cachedInvites) {
             await cacheGuildInvites(guild);
+
             return;
         }
 
         const newInvites = await guild.invites.fetch();
 
-        // Find which invite had its uses increased
         const usedInvite = newInvites.find((invite) => {
             const cached = cachedInvites.get(invite.code);
+
             return cached && invite.uses! > cached.uses;
         });
 
         if (usedInvite && usedInvite.inviter) {
-            // Store the invite information
-            memberInvites.set(member.id, {
+            const info: MemberInviteInfo = {
                 inviteCode: usedInvite.code,
                 inviterId: usedInvite.inviter.id,
                 inviterTag: usedInvite.inviter.tag,
                 joinedAt: Date.now(),
-            });
+            };
 
-            saveMemberInvites();
+            memberInvites.set(member.id, info);
+
+            await saveMemberInvite(member.id, info);
         }
 
-        // Update cache
         await cacheGuildInvites(guild);
     } catch (error) {
         console.error('Error tracking invite:', error);
@@ -169,12 +127,15 @@ export async function handleMemberJoin(member: GuildMember) {
 }
 
 /**
- * Handle invite creation
+ * Handle invite creation.
  */
-export async function handleInviteCreate(invite: Invite) {
-    if (!invite.guild) return;
+export async function handleInviteCreate(invite: Invite): Promise<void> {
+    if (!invite.guild) {
+        return;
+    }
 
     const cachedInvites = guildInvites.get(invite.guild.id);
+
     if (cachedInvites && invite.inviter) {
         cachedInvites.set(invite.code, {
             code: invite.code,
@@ -186,22 +147,25 @@ export async function handleInviteCreate(invite: Invite) {
 }
 
 /**
- * Handle invite deletion
+ * Handle invite deletion.
  */
-export async function handleInviteDelete(invite: Invite) {
-    if (!invite.guild) return;
+export async function handleInviteDelete(invite: Invite): Promise<void> {
+    if (!invite.guild) {
+        return;
+    }
 
     const cachedInvites = guildInvites.get(invite.guild.id);
+
     if (cachedInvites) {
         cachedInvites.delete(invite.code);
     }
 
-    // Note: We don't remove member invite data when invites are deleted
-    // so that historical invite information remains available in user lookups
+    // We intentionally don't remove member invite data.
+    // Historical invite information remains available.
 }
 
 /**
- * Get invite info for a member
+ * Get invite info for a member.
  */
 export function getMemberInviteInfo(userId: string): MemberInviteInfo | null {
     return memberInvites.get(userId) || null;

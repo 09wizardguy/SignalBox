@@ -1,90 +1,18 @@
 import { Command } from '../handlers/types/command';
 
-let pingCommand;
-let userCommand;
-let serverCommand;
-let remindmeCommand;
-let remindersCommand;
-let delreminderCommand;
-let showApplyButtonCommand;
-let listApplicationsCommand;
-let strikeCommand;
-let checkStrikeCommand;
+import pingCommand from './utility/ping.command';
+import userCommand from './utility/user.command';
+import serverCommand from './utility/server.command';
 
-try {
-    pingCommand = require('./utility/ping.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load ping command:', message);
-}
+import remindmeCommand from './utility/reminders/commands/remindme.command';
+import remindersCommand from './utility/reminders/commands/reminders.command';
+import delreminderCommand from './utility/reminders/commands/reminderDel.command';
 
-try {
-    userCommand = require('./utility/user.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load user command:', message);
-}
+import showApplyButtonCommand from './applications/show-apply-button.command';
+import listApplicationsCommand from './applications/list-applications.command';
 
-try {
-    serverCommand = require('./utility/server.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load server command:', message);
-}
-
-try {
-    remindmeCommand =
-        require('./utility/reminders/commands/remindme.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load remindme command:', message);
-}
-
-try {
-    remindersCommand =
-        require('./utility/reminders/commands/reminders.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load reminders command:', message);
-}
-
-try {
-    delreminderCommand =
-        require('./utility/reminders/commands/reminderDel.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load delreminder command:', message);
-}
-
-try {
-    showApplyButtonCommand =
-        require('./applications/show-apply-button.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load show-apply-button command:', message);
-}
-
-try {
-    listApplicationsCommand =
-        require('./applications/list-applications.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load list-applications command:', message);
-}
-
-try {
-    strikeCommand = require('./moderation/strike.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load strike command:', message);
-}
-
-try {
-    checkStrikeCommand = require('./moderation/checkstrike.command').default;
-} catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
-    console.error('Failed to load checkstrike command:', message);
-}
+import strikeCommand from './moderation/strike.command';
+import checkStrikeCommand from './moderation/checkstrike.command';
 
 const commandImports = [
     pingCommand,
@@ -106,6 +34,7 @@ const commands: Command[] = commandImports.filter((cmd) => {
         );
         return false;
     }
+
     return true;
 });
 
@@ -123,6 +52,7 @@ const textCommands: Command[] = textCommandImports.filter((cmd) => {
         console.warn('Warning: A text command import is undefined.');
         return false;
     }
+
     return true;
 });
 

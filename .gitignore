@@ -5,3 +5,5 @@ config.json
 *.zip
 /data
 /dist
+index.js.map
+index.js

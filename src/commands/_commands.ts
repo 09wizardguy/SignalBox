@@ -1,18 +1,18 @@
 import { Command } from '../handlers/types/command';
 
-import pingCommand from './utility/ping.command.js';
-import userCommand from './utility/user.command.js';
-import serverCommand from './utility/server.command.js';
+import pingCommand from './utility/ping.command';
+import userCommand from './utility/user.command';
+import serverCommand from './utility/server.command';
 
-import remindmeCommand from './utility/reminders/commands/remindme.command.js';
-import remindersCommand from './utility/reminders/commands/reminders.command.js';
-import delreminderCommand from './utility/reminders/commands/reminderDel.command.js';
+import remindmeCommand from './utility/reminders/commands/remindme.command';
+import remindersCommand from './utility/reminders/commands/reminders.command';
+import delreminderCommand from './utility/reminders/commands/reminderDel.command';
 
-import showApplyButtonCommand from './applications/show-apply-button.command.js';
-import listApplicationsCommand from './applications/list-applications.command.js';
+import showApplyButtonCommand from './applications/show-apply-button.command';
+import listApplicationsCommand from './applications/list-applications.command';
 
-import strikeCommand from './moderation/strike.command.js';
-import checkStrikeCommand from './moderation/checkstrike.command.js';
+import strikeCommand from './moderation/strike.command';
+import checkStrikeCommand from './moderation/checkstrike.command';
 
 const commandImports: (Command | undefined)[] = [
     pingCommand,

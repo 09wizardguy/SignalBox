@@ -5,8 +5,8 @@ export default defineConfig({
     format: ['cjs'],
     platform: 'node',
     target: 'node20',
-    outDir: 'dist',
-    clean: true,
+    outDir: '.',
+    clean: false,
     sourcemap: true,
     noExternal: [/.*/], // bundle every dependency
 });

@@ -3,7 +3,7 @@ import 'dotenv/config';
 import fs from 'fs/promises';
 import path from 'path';
 
-import { MySqlPersistenceProvider } from './mysqlpersistence';
+import { MySqlPersistenceProvider } from './mysqlPersistence';
 
 import { PersistenceCollection } from './types';
 

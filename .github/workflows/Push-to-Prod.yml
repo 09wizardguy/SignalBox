@@ -1,0 +1,23 @@
+name: Push to Prod branch
+
+on: [workflow_dispatch, workflow_call]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure User
+        run: |
+          git config user.name "github-actions-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge Dev to Prod
+        run: |
+          git checkout prod
+          git merge dev --no-ff -m "Merge dev into prod"
+          git push origin prod

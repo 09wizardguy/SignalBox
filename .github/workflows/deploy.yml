@@ -3,7 +3,12 @@ name: Deploy and Restart
 on: [workflow_dispatch]
 
 jobs:
+    push-to-prod:
+        if: github.ref == 'refs/heads/prod'
+        uses: ./.github/workflows/Push-to-Prod.yml
+    
     deploy:
+        if: github.ref == 'refs/heads/prod'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Code

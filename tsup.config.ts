@@ -8,5 +8,5 @@ export default defineConfig({
     outDir: '.',
     clean: false,
     sourcemap: true,
-    noExternal: [/.*/], // bundle every dependency
+    noExternal: [/.*/],
 });

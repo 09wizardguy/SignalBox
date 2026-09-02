@@ -1,6 +1,6 @@
-import { JsonPersistenceProvider } from './jsonpersistence';
+import { JsonPersistenceProvider } from './jsonPersistence';
 
-import { MySqlPersistenceProvider } from './mysqlpersistence';
+import { MySqlPersistenceProvider } from './mysqlPersistence';
 
 import { PersistenceCollection, PersistenceProvider } from './types';
 

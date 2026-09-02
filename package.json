@@ -15,8 +15,8 @@
     "type": "commonjs",
     "scripts": {
         "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
-        "start": "tsx src/index.ts",
-        "build": "tsup",
+        "start": "node dist/index.ts",
+        "install": "tsup",
         "typecheck": "tsc --noEmit",
         "migrate:mysql": "tsx src/services/persistence/migrateMysql.ts",
         "lint": "tsc && eslint . && prettier --check .",

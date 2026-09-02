@@ -14,7 +14,7 @@ import listApplicationsCommand from './applications/list-applications.command';
 import strikeCommand from './moderation/strike.command';
 import checkStrikeCommand from './moderation/checkstrike.command';
 
-const commandImports = [
+const commandImports: (Command | undefined)[] = [
     pingCommand,
     userCommand,
     serverCommand,
@@ -27,7 +27,7 @@ const commandImports = [
     checkStrikeCommand,
 ];
 
-const commands: Command[] = commandImports.filter((cmd) => {
+const commands: Command[] = commandImports.filter((cmd): cmd is Command => {
     if (!cmd) {
         console.warn(
             'Warning: A command import is undefined. Check your command files for proper default exports.'
@@ -38,7 +38,7 @@ const commands: Command[] = commandImports.filter((cmd) => {
     return true;
 });
 
-const textCommandImports = [
+const textCommandImports: (Command | undefined)[] = [
     userCommand,
     remindmeCommand,
     remindersCommand,
@@ -47,14 +47,16 @@ const textCommandImports = [
     checkStrikeCommand,
 ];
 
-const textCommands: Command[] = textCommandImports.filter((cmd) => {
-    if (!cmd) {
-        console.warn('Warning: A text command import is undefined.');
-        return false;
-    }
+const textCommands: Command[] = textCommandImports.filter(
+    (cmd): cmd is Command => {
+        if (!cmd) {
+            console.warn('Warning: A text command import is undefined.');
+            return false;
+        }
 
-    return true;
-});
+        return true;
+    }
+);
 
 export default commands;
 export { textCommands };

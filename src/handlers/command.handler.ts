@@ -1,33 +1,34 @@
 import dotenv from 'dotenv';
+
 import {
     REST,
     Routes,
     Collection,
     EmbedBuilder,
     Events,
-    ChatInputCommandInteraction,
     RESTGetAPIOAuth2CurrentApplicationResult,
     Client,
     MessageFlags,
 } from 'discord.js';
+
 import commands from '../commands/_commands';
-import { Command } from '../handlers/types/command';
-import {
-    checkPermissions,
-    checkRoles,
-    sendNoPermission,
-    sendNoRole,
-} from './permissions.handler';
+
+import { Command } from './types/command';
+
+import { checkPermissions, checkRoles } from './permissions.handler';
 
 dotenv.config();
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
 
-// Collection of slash-capable commands
+/**
+ * Collection of slash-capable commands.
+ *
+ * Commands are statically imported by _commands.ts so tsup
+ * can bundle them correctly.
+ */
 const commandCollection = new Collection<string, Command>(
-    commands
-        .filter((cmd) => cmd.data) // only slash commands
-        .map((cmd) => [cmd.data!.name, cmd])
+    commands.filter((cmd) => cmd.data).map((cmd) => [cmd.data!.name, cmd])
 );
 
 export type Handler = (context: { client: Client }) => void;
@@ -35,6 +36,7 @@ export type Handler = (context: { client: Client }) => void;
 export async function reloadGlobalSlashCommands() {
     try {
         console.log(`Refreshing ${commandCollection.size} slash commands...`);
+
         console.time('Refreshing commands');
 
         const { id: appID } = (await rest.get(
@@ -59,6 +61,7 @@ const commandHandler: Handler = ({ client }) => {
         if (!interaction.isChatInputCommand()) return;
 
         const cmd = commandCollection.get(interaction.commandName);
+
         if (!cmd || !cmd.executeSlash) return;
 
         try {
@@ -68,6 +71,7 @@ const commandHandler: Handler = ({ client }) => {
                     interaction,
                     cmd.requiredRoles
                 );
+
                 if (!hasRoles) {
                     return;
                 }
@@ -79,6 +83,7 @@ const commandHandler: Handler = ({ client }) => {
                     interaction,
                     cmd.requiredPermissions
                 );
+
                 if (!hasPerms) {
                     return;
                 }
@@ -87,18 +92,39 @@ const commandHandler: Handler = ({ client }) => {
             await cmd.executeSlash(interaction);
         } catch (error) {
             console.error(error);
+
             if (interaction.isRepliable()) {
-                await interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setTitle('Error')
-                            .setDescription(
-                                'There was an error executing that command.'
-                            )
-                            .setColor('Red'),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
+                // An interaction may already have been acknowledged
+                // by the command before the error occurred.
+                if (interaction.replied || interaction.deferred) {
+                    await interaction
+                        .followUp({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setTitle('Error')
+                                    .setDescription(
+                                        'There was an error executing that command.'
+                                    )
+                                    .setColor('Red'),
+                            ],
+                            flags: MessageFlags.Ephemeral,
+                        })
+                        .catch(console.error);
+                } else {
+                    await interaction
+                        .reply({
+                            embeds: [
+                                new EmbedBuilder()
+                                    .setTitle('Error')
+                                    .setDescription(
+                                        'There was an error executing that command.'
+                                    )
+                                    .setColor('Red'),
+                            ],
+                            flags: MessageFlags.Ephemeral,
+                        })
+                        .catch(console.error);
+                }
             }
         }
     });

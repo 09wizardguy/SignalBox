@@ -3,6 +3,7 @@ import { Command } from '../handlers/types/command';
 import pingCommand from './utility/ping.command';
 import userCommand from './utility/user.command';
 import serverCommand from './utility/server.command';
+import helpCommand from './utility/help.command';
 
 import remindmeCommand from './utility/reminders/commands/remindme.command';
 import remindersCommand from './utility/reminders/commands/reminders.command';
@@ -18,6 +19,7 @@ const commandImports: (Command | undefined)[] = [
     pingCommand,
     userCommand,
     serverCommand,
+    helpCommand,
     remindmeCommand,
     remindersCommand,
     delreminderCommand,
@@ -27,21 +29,20 @@ const commandImports: (Command | undefined)[] = [
     checkStrikeCommand,
 ];
 
-const commands: Command[] = commandImports.filter(
-    (cmd): cmd is Command => {
-        if (!cmd) {
-            console.warn(
-                'Warning: A command import is undefined. Check your command files for proper default exports.'
-            );
-            return false;
-        }
-
-        return true;
+const commands: Command[] = commandImports.filter((cmd): cmd is Command => {
+    if (!cmd) {
+        console.warn(
+            'Warning: A command import is undefined. Check your command files for proper default exports.'
+        );
+        return false;
     }
-);
+
+    return true;
+});
 
 const textCommandImports: (Command | undefined)[] = [
     userCommand,
+    helpCommand,
     remindmeCommand,
     remindersCommand,
     delreminderCommand,

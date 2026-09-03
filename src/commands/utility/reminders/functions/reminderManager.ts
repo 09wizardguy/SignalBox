@@ -58,9 +58,9 @@ export async function loadReminders(
     ) => Promise<void> | void
 ): Promise<void> {
     try {
-        const entries = await getPersistence().getAllEntries<SerializedReminder[]>(
-            PersistenceCollection.Reminders
-        );
+        const entries = await getPersistence().getAllEntries<
+            SerializedReminder[]
+        >(PersistenceCollection.Reminders);
 
         const now = Date.now();
 

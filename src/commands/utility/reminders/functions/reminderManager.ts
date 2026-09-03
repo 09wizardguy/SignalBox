@@ -5,6 +5,7 @@ import {
 
 interface Reminder {
     message: string;
+    channelId: string;
     timeout?: NodeJS.Timeout;
     createdAt: number;
     expiresAt: number;
@@ -12,6 +13,7 @@ interface Reminder {
 
 interface SerializedReminder {
     message: string;
+    channelId: string;
     createdAt: number;
     expiresAt: number;
 }
@@ -26,6 +28,7 @@ async function saveUserReminders(userId: string): Promise<void> {
 
     const serialized: SerializedReminder[] = userReminders.map((reminder) => ({
         message: reminder.message,
+        channelId: reminder.channelId,
         createdAt: reminder.createdAt,
         expiresAt: reminder.expiresAt,
     }));
@@ -50,13 +53,14 @@ export async function loadReminders(
     callback: (
         userId: string,
         message: string,
-        createdAt: number
+        createdAt: number,
+        channelId: string
     ) => Promise<void> | void
 ): Promise<void> {
     try {
-        const entries = await getPersistence().getAllEntries<
-            SerializedReminder[]
-        >(PersistenceCollection.Reminders);
+        const entries = await getPersistence().getAllEntries<SerializedReminder[]>(
+            PersistenceCollection.Reminders
+        );
 
         const now = Date.now();
 
@@ -74,6 +78,7 @@ export async function loadReminders(
 
                 const reminderObj: Reminder = {
                     message: reminder.message,
+                    channelId: reminder.channelId,
                     createdAt: reminder.createdAt,
                     expiresAt: reminder.expiresAt,
                 };
@@ -83,7 +88,8 @@ export async function loadReminders(
                         await callback(
                             userId,
                             reminder.message || 'No message provided.',
-                            reminder.createdAt
+                            reminder.createdAt,
+                            reminder.channelId
                         );
                     } finally {
                         const index = getReminderIndex(userId, reminderObj);
@@ -169,6 +175,7 @@ export async function scheduleReminder(
     userId: string,
     timeStr: string,
     message: string,
+    channelId: string,
     callback: (message: string, createdAt: number) => Promise<void> | void
 ): Promise<void> {
     const ms = parseDuration(timeStr);
@@ -183,6 +190,7 @@ export async function scheduleReminder(
 
     const reminder: Reminder = {
         message,
+        channelId,
         createdAt,
         expiresAt,
     };

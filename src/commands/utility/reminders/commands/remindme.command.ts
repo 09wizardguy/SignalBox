@@ -41,6 +41,7 @@ const remindmeCommand: Command = {
             interaction.user.id,
             time,
             msg,
+            textChannel.id,
             async (message, createdAt) => {
                 await textChannel.send(
                     `⏰ Reminder for <@${
@@ -75,6 +76,7 @@ const remindmeCommand: Command = {
             message.author.id,
             time,
             msg,
+            textChannel.id,
             async (reminderText, createdAt) => {
                 await textChannel.send(
                     `⏰ Reminder for <@${message.author.id}>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`

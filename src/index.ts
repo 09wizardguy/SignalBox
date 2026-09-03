@@ -60,19 +60,45 @@ client.once(Events.ClientReady, async () => {
     await initializeInviteTracking(client);
 
     // Reminders
-    await loadReminders(async (userId, message, createdAt) => {
+    await loadReminders(async (userId, message, createdAt, channelId) => {
+        const content = `⏰ Reminder for <@${userId}>: ${message} set <t:${Math.floor(
+            createdAt / 1000
+        )}:R>`;
+
         try {
-            const user = await client.users.fetch(userId);
+            if (!channelId) {
+                throw new Error('No channel associated with this reminder.');
+            }
 
-            const dmChannel = await user.createDM();
+            const channel = await client.channels.fetch(channelId);
 
-            await dmChannel.send(
-                `⏰ Reminder for <@${userId}>: ${message} set <t:${Math.floor(
-                    createdAt / 1000
-                )}:R>`
-            );
+            if (
+                !channel?.isTextBased() ||
+                !('send' in channel) ||
+                typeof channel.send !== 'function'
+            ) {
+                throw new Error(`Channel ${channelId} is not text-based.`);
+            }
+
+            await channel.send(content);
         } catch (error) {
-            console.error(`Failed to send reminder to user ${userId}:`, error);
+            console.error(
+                `Failed to send reminder to channel ${channelId} for user ${userId}, falling back to DM:`,
+                error
+            );
+
+            try {
+                const user = await client.users.fetch(userId);
+
+                const dmChannel = await user.createDM();
+
+                await dmChannel.send(content);
+            } catch (dmError) {
+                console.error(
+                    `Failed to DM reminder fallback to user ${userId}:`,
+                    dmError
+                );
+            }
         }
     });
 

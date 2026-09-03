@@ -93,7 +93,7 @@ export class MySqlPersistenceProvider implements PersistenceProvider {
             return null;
         }
 
-        return JSON.parse(rows[0].record_data) as T;
+        return this.parseRecordData<T>(rows[0].record_data);
     }
 
     async getAll<T>(collection: PersistenceCollection): Promise<T[]> {
@@ -106,7 +106,7 @@ export class MySqlPersistenceProvider implements PersistenceProvider {
                 `
         );
 
-        return rows.map((row) => JSON.parse(row.record_data) as T);
+        return rows.map((row) => this.parseRecordData<T>(row.record_data));
     }
 
     async getAllEntries<T>(
@@ -123,7 +123,7 @@ export class MySqlPersistenceProvider implements PersistenceProvider {
 
         return rows.map((row) => [
             row.record_key,
-            JSON.parse(row.record_data) as T,
+            this.parseRecordData<T>(row.record_data),
         ]);
     }
 
@@ -169,6 +169,12 @@ export class MySqlPersistenceProvider implements PersistenceProvider {
 
     async close(): Promise<void> {
         await this.pool.end();
+    }
+
+    private parseRecordData<T>(data: unknown): T {
+        // mysql2 auto-parses JSON-typed columns into objects, so `data` may
+        // already be the deserialized value rather than a raw string.
+        return (typeof data === 'string' ? JSON.parse(data) : data) as T;
     }
 
     private getTableName(collection: PersistenceCollection): string {

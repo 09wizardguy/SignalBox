@@ -3,36 +3,36 @@ name: Push to Prod and Restart
 on: [workflow_dispatch, workflow_call]
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Configure User
-        run: |
-          git config user.name "github-actions-bot"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+            - name: Configure User
+              run: |
+                  git config user.name "github-actions-bot"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge Dev to Prod
-        run: |
-          git checkout prod
-          git merge dev --no-ff -m "Merge dev into prod"
-          git push origin prod
+            - name: Merge Dev to Prod
+              run: |
+                  git checkout prod
+                  git merge dev --no-ff -m "Merge dev into prod"
+                  git push origin prod
 
-      - name: Restart Bot via API
-        env:
-          SERVER_ID: ${{ secrets.SERVER_ID }}
-          HOST_API_TOKEN: ${{ secrets.HOST_API_TOKEN }}
-        run: |
-            curl --request POST \
-              --url "https://kineticpanel.net/api/client/servers/${SERVER_ID}/power" \
-              --header "Authorization: Bearer ${HOST_API_TOKEN}" \
-              --header 'Accept: application/json' \
-              --header 'Content-Type: application/json' \
-              --fail \
-              --data '{
-                "signal": "restart"
-              }'
+            - name: Restart Bot via API
+              env:
+                  SERVER_ID: ${{ secrets.SERVER_ID }}
+                  HOST_API_TOKEN: ${{ secrets.HOST_API_TOKEN }}
+              run: |
+                  curl --request POST \
+                    --url "https://kineticpanel.net/api/client/servers/${SERVER_ID}/power" \
+                    --header "Authorization: Bearer ${HOST_API_TOKEN}" \
+                    --header 'Accept: application/json' \
+                    --header 'Content-Type: application/json' \
+                    --fail \
+                    --data '{
+                      "signal": "restart"
+                    }'

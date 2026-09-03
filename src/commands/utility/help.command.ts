@@ -21,8 +21,6 @@ const helpCommand: Command = {
         await interaction.reply(HELP_MESSAGE);
     },
 
-
-
     async executeText(message: Message) {
         const channel = message.channel;
         const textChannel = channel as TextChannel;
@@ -31,4 +29,4 @@ const helpCommand: Command = {
     },
 };
 
-export default helpCommand
+export default helpCommand;

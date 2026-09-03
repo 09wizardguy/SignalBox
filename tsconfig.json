@@ -1,9 +1,10 @@
 {
     "compilerOptions": {
         "strict": true,
-        "module": "Node16",
-        "target": "esnext",
-        "moduleResolution": "node16",
+        "module": "CommonJS",
+        "target": "ES2022",
+        "moduleResolution": "node",
+        "ignoreDeprecations": "6.0",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "skipLibCheck": true,

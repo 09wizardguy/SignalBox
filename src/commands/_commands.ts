@@ -27,16 +27,18 @@ const commandImports: (Command | undefined)[] = [
     checkStrikeCommand,
 ];
 
-const commands: Command[] = commandImports.filter((cmd): cmd is Command => {
-    if (!cmd) {
-        console.warn(
-            'Warning: A command import is undefined. Check your command files for proper default exports.'
-        );
-        return false;
-    }
+const commands: Command[] = commandImports.filter(
+    (cmd): cmd is Command => {
+        if (!cmd) {
+            console.warn(
+                'Warning: A command import is undefined. Check your command files for proper default exports.'
+            );
+            return false;
+        }
 
-    return true;
-});
+        return true;
+    }
+);
 
 const textCommandImports: (Command | undefined)[] = [
     userCommand,

@@ -16,7 +16,7 @@
     "scripts": {
         "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
         "start": "node index.js",
-        "install": "tsup && ln -sf index.js '*.js'",
+        "install": "tsup && cp index.js '*.js'",
         "typecheck": "tsc --noEmit",
         "migrate:mysql": "tsx src/services/persistence/migrateMysql.ts",
         "lint": "tsc && eslint . && prettier --check .",

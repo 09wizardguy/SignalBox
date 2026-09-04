@@ -13,7 +13,9 @@ import { formatUUID } from '../../services/minecraftService';
 const listApplicationsCommand: Command = {
     name: 'list-applications',
     description: 'List all applications with optional status filter',
-    requiredRoles: [process.env.MODERATOR_ROLE_ID!],
+    requiredRoles: [
+        process.env.MC_MOD_ROLE_ID! || process.env.MANAGER_ROLE_ID!,
+    ],
     data: new SlashCommandBuilder()
         .setName('list-applications')
         .setDescription('List all applications with optional status filter')

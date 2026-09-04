@@ -165,7 +165,7 @@ client.on(Events.ThreadCreate, async (channel) => {
     try {
         if (channel.type === ChannelType.PublicThread && channel.guild) {
             const ModeratorRoleId = process.env.MODERATOR_ROLE_ID;
-
+            const McModRoleId = process.env.MC_MOD_ROLE_ID;
             const SupportRoleId = process.env.SUPPORT_ROLE_ID;
 
             await timeout(2000);
@@ -185,6 +185,15 @@ client.on(Events.ThreadCreate, async (channel) => {
                 channel.parent.id === process.env.SUPPORT_CHANNEL_ID
             ) {
                 await message.edit(`<@&${SupportRoleId}>`);
+            }
+
+            await timeout(2000);
+
+            if (
+                channel.parent &&
+                (channel.parentId === process.env.MC_SERVER_CATEGORY_ID || channel.parent.id === process.env.MC_SUGGESTION_CHANNEL_ID)
+            ) {
+                await message.edit(`<@&${McModRoleId}><@&${SupportRoleId}>`);
             }
 
             await timeout(1000);

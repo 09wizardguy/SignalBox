@@ -1,13 +1,21 @@
 import {
     ChatInputCommandInteraction,
+    ButtonInteraction,
+    ModalSubmitInteraction,
     Message,
     PermissionResolvable,
     GuildMember,
     EmbedBuilder,
 } from 'discord.js';
 
+type PermissionSource =
+    | ChatInputCommandInteraction
+    | ButtonInteraction
+    | ModalSubmitInteraction
+    | Message;
+
 export async function checkPermissions(
-    source: ChatInputCommandInteraction | Message,
+    source: PermissionSource,
     requiredPerms: PermissionResolvable[]
 ): Promise<boolean> {
     const member =
@@ -24,7 +32,7 @@ export async function checkPermissions(
 }
 
 export async function checkRoles(
-    source: ChatInputCommandInteraction | Message,
+    source: PermissionSource,
     requiredRoles: string[]
 ): Promise<boolean> {
     const member =

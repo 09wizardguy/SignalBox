@@ -9,13 +9,12 @@ import { Command } from '../../handlers/types/command';
 import { getAllApplications } from '../../services/applicationManager';
 import { ApplicationStatus } from '../../handlers/types/application';
 import { formatUUID } from '../../services/minecraftService';
+import { APPLICATION_MANAGER_ROLE_IDS } from '../../config/roles';
 
 const listApplicationsCommand: Command = {
     name: 'list-applications',
     description: 'List all applications with optional status filter',
-    requiredRoles: [
-        process.env.MC_MOD_ROLE_ID! || process.env.MANAGER_ROLE_ID!,
-    ],
+    requiredRoles: APPLICATION_MANAGER_ROLE_IDS,
     data: new SlashCommandBuilder()
         .setName('list-applications')
         .setDescription('List all applications with optional status filter')

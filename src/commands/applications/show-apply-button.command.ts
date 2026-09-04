@@ -31,9 +31,9 @@ const showApplyButtonCommand: Command = {
         );
 
         const embed = new EmbedBuilder()
-            .setTitle('Application System')
+            .setTitle('Apply for Minecraft Server Whitelist')
             .setDescription(
-                'Click the button below to submit an application. You will be asked a few questions in a form.'
+                'Click the button below to submit an application to be whitelisted on the community server. You will be asked a few questions in a form.'
             )
             .setColor('#5865F2');
 

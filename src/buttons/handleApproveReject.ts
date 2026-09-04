@@ -2,7 +2,6 @@ import {
     ButtonInteraction,
     Colors,
     EmbedBuilder,
-    GuildMember,
     MessageFlags,
     ModalBuilder,
     TextInputBuilder,
@@ -16,20 +15,19 @@ import {
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
 import { whitelistPlayer } from '../services/minecraftService';
+import { APPLICATION_MANAGER_ROLE_IDS } from '../config/roles';
+import { checkRoles } from '../handlers/permissions.handler';
 
 export async function handleApproveButton(interaction: ButtonInteraction) {
-    // Check if user has moderator role
-    const moderatorRoleId = process.env.MODERATOR_ROLE_ID;
-    if (moderatorRoleId) {
-        const member = interaction.member as GuildMember;
-        if (!member.roles.cache.has(moderatorRoleId)) {
-            await interaction.reply({
-                content:
-                    '❌ You do not have permission to approve applications.',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+    // Must hold one of the same roles required to post the apply button
+    // and list applications (APPLICATION_MANAGER_ROLE_IDS).
+    const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
+    if (!hasRole) {
+        await interaction.reply({
+            content: '❌ You do not have permission to approve applications.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
     }
 
     const userId = interaction.customId.split('_')[1];
@@ -123,18 +121,15 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
 }
 
 export async function handleRejectButton(interaction: ButtonInteraction) {
-    // Check if user has moderator role
-    const moderatorRoleId = process.env.MODERATOR_ROLE_ID;
-    if (moderatorRoleId) {
-        const member = interaction.member as GuildMember;
-        if (!member.roles.cache.has(moderatorRoleId)) {
-            await interaction.reply({
-                content:
-                    '❌ You do not have permission to reject applications.',
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+    // Must hold one of the same roles required to post the apply button
+    // and list applications (APPLICATION_MANAGER_ROLE_IDS).
+    const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
+    if (!hasRole) {
+        await interaction.reply({
+            content: '❌ You do not have permission to reject applications.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
     }
 
     const userId = interaction.customId.split('_')[1];
@@ -179,6 +174,19 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
 export async function handleRejectModalSubmit(
     interaction: ModalSubmitInteraction
 ) {
+    // Re-check here rather than relying solely on the check in
+    // handleRejectButton, since this is a separate interaction and
+    // shouldn't implicitly trust that the modal could only have been
+    // opened by an authorized user.
+    const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
+    if (!hasRole) {
+        await interaction.reply({
+            content: '❌ You do not have permission to reject applications.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
     const userId = interaction.customId.replace('reject_modal_', '');
     const reason = interaction.fields.getTextInputValue('reject_reason').trim();
 

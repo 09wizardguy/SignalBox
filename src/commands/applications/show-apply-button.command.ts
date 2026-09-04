@@ -9,13 +9,12 @@ import {
     MessageFlags,
 } from 'discord.js';
 import { Command } from '../../handlers/types/command';
+import { APPLICATION_MANAGER_ROLE_IDS } from '../../config/roles';
 
 const showApplyButtonCommand: Command = {
     name: 'show-apply-button',
     description: 'Display the application button for users to apply',
-    requiredRoles: [
-        process.env.MC_MOD_ROLE_ID! || process.env.MANAGER_ROLE_ID!,
-    ],
+    requiredRoles: APPLICATION_MANAGER_ROLE_IDS,
     data: new SlashCommandBuilder()
         .setName('show-apply-button')
         .setDescription('Display the application button for users to apply')

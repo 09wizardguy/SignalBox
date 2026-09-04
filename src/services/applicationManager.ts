@@ -19,7 +19,7 @@ async function saveApplication(application: Application): Promise<void> {
         minecraftUUID: application.minecraftUUID,
         isValidMinecraftAccount: application.isValidMinecraftAccount,
         reason: application.reason,
-        experience: application.experience,
+        theme: application.theme,
         likeTrains: application.likeTrains,
         status: application.status,
         createdAt: application.createdAt,
@@ -74,7 +74,7 @@ export async function createApplication(
     minecraftUUID?: string,
     isValidMinecraftAccount?: boolean,
     reason?: string,
-    experience?: string,
+    theme?: string,
     likeTrains?: string
 ): Promise<Application> {
     const application: Application = {
@@ -84,7 +84,7 @@ export async function createApplication(
         minecraftUUID,
         isValidMinecraftAccount,
         reason,
-        experience,
+        theme,
         likeTrains,
         status: ApplicationStatus.PENDING,
         createdAt: Date.now(),

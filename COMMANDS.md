@@ -15,8 +15,8 @@ Not every command is available in both forms — see the "Interfaces" column bel
 | [`remindme`](#remindme)                   | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
 | [`reminders`](#reminders)                 | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
 | [`delreminder`](#delreminder)             | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
-| [`show-apply-button`](#show-apply-button) | Slash only   | `MODERATOR_ROLE_ID`         |
-| [`list-applications`](#list-applications) | Slash only   | `MODERATOR_ROLE_ID`         |
+| [`show-apply-button`](#show-apply-button) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
+| [`list-applications`](#list-applications) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
 | [`strike`](#strike)                       | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
 | [`checkstrike`](#checkstrike)             | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
 

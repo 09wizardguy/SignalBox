@@ -13,7 +13,9 @@ import { Command } from '../../handlers/types/command';
 const showApplyButtonCommand: Command = {
     name: 'show-apply-button',
     description: 'Display the application button for users to apply',
-    requiredRoles: [process.env.MODERATOR_ROLE_ID!],
+    requiredRoles: [
+        process.env.MC_MOD_ROLE_ID! || process.env.MANAGER_ROLE_ID!,
+    ],
     data: new SlashCommandBuilder()
         .setName('show-apply-button')
         .setDescription('Display the application button for users to apply')

@@ -28,7 +28,7 @@ type PendingApplicationData = {
     minecraftUUID?: string;
     isValidMinecraftAccount: boolean;
     reason?: string;
-    experience?: string;
+    theme?: string;
 };
 
 declare global {
@@ -93,18 +93,17 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
     // Reason input
     const reasonInput = new TextInputBuilder()
         .setCustomId('reason_input')
-        .setLabel('Why do you want to join?')
+        .setLabel(`What's your goal for the server?`)
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Tell us why you want to be part of the community')
         .setRequired(false)
         .setMaxLength(1000);
 
-    // Experience input
-    const experienceInput = new TextInputBuilder()
-        .setCustomId('experience_input')
-        .setLabel('Tell us about your experience!')
+    // Theme input
+    const themeInput = new TextInputBuilder()
+        .setCustomId('theme_input')
+        .setLabel('What theme are planning to go for?')
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Share your background and experience')
         .setRequired(false)
         .setMaxLength(1000);
 
@@ -118,10 +117,10 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         reasonInput
     );
 
-    const experienceRow =
-        new ActionRowBuilder<TextInputBuilder>().addComponents(experienceInput);
+    const themeRow =
+        new ActionRowBuilder<TextInputBuilder>().addComponents(themeInput);
 
-    modal.addComponents(minecraftUsernameRow, reasonRow, experienceRow);
+    modal.addComponents(minecraftUsernameRow, reasonRow, themeRow);
 
     // Show modal
     await interaction.showModal(modal);
@@ -136,8 +135,8 @@ export async function handleApplicationModalSubmit(interaction: any) {
     );
     const reason =
         interaction.fields.getTextInputValue('reason_input') || undefined;
-    const experience =
-        interaction.fields.getTextInputValue('experience_input') || undefined;
+    const theme =
+        interaction.fields.getTextInputValue('theme_input') || undefined;
 
     // Validate Minecraft username
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -187,7 +186,7 @@ export async function handleApplicationModalSubmit(interaction: any) {
         minecraftUUID: minecraftProfile.id,
         isValidMinecraftAccount: minecraftProfile.isValid,
         reason,
-        experience,
+        theme,
     });
 }
 
@@ -216,7 +215,7 @@ export async function handleTrainSelectMenu(
         pendingData.minecraftUUID,
         pendingData.isValidMinecraftAccount,
         pendingData.reason,
-        pendingData.experience,
+        pendingData.theme,
         likeTrains
     );
 
@@ -236,7 +235,7 @@ export async function handleTrainSelectMenu(
         pendingData.minecraftUUID,
         pendingData.isValidMinecraftAccount,
         pendingData.reason,
-        pendingData.experience,
+        pendingData.theme,
         likeTrains
     );
 }
@@ -248,7 +247,7 @@ async function sendToModerators(
     minecraftUUID?: string,
     isValidMinecraftAccount?: boolean,
     reason?: string,
-    experience?: string,
+    theme?: string,
     likeTrains?: string
 ) {
     const reviewChannelId = process.env.APPLICATION_REVIEW_CHANNEL_ID;
@@ -298,8 +297,8 @@ async function sendToModerators(
     embed.addFields(
         { name: 'Reason', value: reason || 'Not provided', inline: false },
         {
-            name: 'Experience',
-            value: experience || 'Not provided',
+            name: 'Theme',
+            value: theme || 'Not provided',
             inline: false,
         },
         {

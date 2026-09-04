@@ -5,7 +5,7 @@ export interface Application {
     minecraftUUID?: string;
     isValidMinecraftAccount?: boolean;
     reason?: string;
-    experience?: string;
+    theme?: string;
     likeTrains?: string;
     status: ApplicationStatus;
     createdAt: number;
@@ -26,7 +26,7 @@ export interface SerializedApplication {
     minecraftUUID?: string;
     isValidMinecraftAccount?: boolean;
     reason?: string;
-    experience?: string;
+    theme?: string;
     likeTrains?: string;
     status: ApplicationStatus;
     createdAt: number;

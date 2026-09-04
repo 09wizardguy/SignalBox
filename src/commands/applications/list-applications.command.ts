@@ -75,6 +75,7 @@ const listApplicationsCommand: Command = {
                 `**Status:** ${app.status}`,
                 `**Minecraft:** ${app.minecraftUsername} (${validationStatus})${uuidInfo}`,
                 `**Reason:** ${app.reason?.substring(0, 100) || 'Not provided'}`,
+                `**Theme:** ${app.theme?.substring(0,100) || 'Not provided'}`,
                 `**Likes Trains:** ${app.likeTrains || 'Not answered'}`,
                 `**Applied:** <t:${Math.floor(app.createdAt / 1000)}:R>`,
             ].join('\n');

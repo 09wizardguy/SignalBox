@@ -105,11 +105,18 @@ const textCommandHandler: Handler = ({ client }) => {
             } catch (error) {
                 console.error('Error handling button interaction:', error);
                 if (interaction.isRepliable() && !interaction.replied) {
-                    await interaction.reply({
-                        content:
-                            '❌ An error occurred while processing your request.',
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    await interaction
+                        .reply({
+                            content:
+                                '❌ An error occurred while processing your request.',
+                            flags: MessageFlags.Ephemeral,
+                        })
+                        .catch((replyError) => {
+                            console.error(
+                                'Failed to send error reply for button interaction (likely expired):',
+                                replyError
+                            );
+                        });
                 }
             }
         }
@@ -125,11 +132,18 @@ const textCommandHandler: Handler = ({ client }) => {
             } catch (error) {
                 console.error('Error handling modal submission:', error);
                 if (interaction.isRepliable() && !interaction.replied) {
-                    await interaction.reply({
-                        content:
-                            '❌ An error occurred while processing your application.',
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    await interaction
+                        .reply({
+                            content:
+                                '❌ An error occurred while processing your application.',
+                            flags: MessageFlags.Ephemeral,
+                        })
+                        .catch((replyError) => {
+                            console.error(
+                                'Failed to send error reply for modal submission (likely expired):',
+                                replyError
+                            );
+                        });
                 }
             }
         }
@@ -143,11 +157,18 @@ const textCommandHandler: Handler = ({ client }) => {
             } catch (error) {
                 console.error('Error handling select menu interaction:', error);
                 if (interaction.isRepliable() && !interaction.replied) {
-                    await interaction.reply({
-                        content:
-                            '❌ An error occurred while processing your selection.',
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    await interaction
+                        .reply({
+                            content:
+                                '❌ An error occurred while processing your selection.',
+                            flags: MessageFlags.Ephemeral,
+                        })
+                        .catch((replyError) => {
+                            console.error(
+                                'Failed to send error reply for select menu interaction (likely expired):',
+                                replyError
+                            );
+                        });
                 }
             }
         }

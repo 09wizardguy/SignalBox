@@ -17,6 +17,7 @@ Not every command is available in both forms — see the "Interfaces" column bel
 | [`delreminder`](#delreminder)             | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
 | [`show-apply-button`](#show-apply-button) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
 | [`list-applications`](#list-applications) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
+| [`revoke-application`](#revoke-application)| Slash only  | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
 | [`strike`](#strike)                       | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
 | [`checkstrike`](#checkstrike)             | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
 
@@ -172,10 +173,27 @@ Lists submitted applications (up to 25 shown at once), optionally filtered by st
 **Slash:**
 
 ```
-/list-applications [status:<Pending|Approved|Rejected>]
+/list-applications [status:<Pending|Approved|Rejected|Revoked>]
 ```
 
 - `status` _(optional)_ — filter results by application status
+
+**Text:** not available.
+
+---
+
+### `revoke-application`
+
+Revokes a previously **approved** application: removes the `APPROVED_APPLICATION_ROLE_ID` role from the member (if configured), fires `whitelist remove <playername>` via RCON to undo the automatic whitelist (only for accounts that were auto-whitelisted, i.e. `isValidMinecraftAccount` was true), marks the application as `revoked`, updates the original review-channel embed if it can be found, and DMs the applicant. Applications that are `pending`, `rejected`, or already `revoked` are rejected with an explanation — only `approved` applications can be revoked.
+
+**Slash:**
+
+```
+/revoke-application user:<mention> [reason:<text>]
+```
+
+- `user` _(required)_ — the applicant whose approval should be revoked
+- `reason` _(optional)_ — shown to the applicant and logged on the review-channel embed
 
 **Text:** not available.
 
@@ -234,4 +252,4 @@ Looks up the active strike (if any) for a user, showing level, issuer, and the d
 
 - Text-prefix commands require the message to start with `!` and are ignored from bots.
 - Role-gated commands (`requiredRoles`) check the invoking member against the relevant role ID environment variable(s); `ADVANCED_COMMANDS_ROLE_ID` supports a comma-separated list of role IDs.
-- `strike`, `checkstrike`, `remindme`, `reminders`, and `delreminder` are available via both slash and text interfaces; `ping`, `show-apply-button`, and `list-applications` are slash-only.
+- `strike`, `checkstrike`, `remindme`, `reminders`, and `delreminder` are available via both slash and text interfaces; `ping`, `show-apply-button`, `list-applications`, and `revoke-application` are slash-only.

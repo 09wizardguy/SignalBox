@@ -70,6 +70,24 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             const { deleteApplication } =
                 await import('../services/applicationManager.js');
             await deleteApplication(interaction.user.id);
+        } else if (existingApp.status === ApplicationStatus.REVOKED) {
+            const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+            const revokedAt = existingApp.revokedAt ?? existingApp.createdAt;
+            const elapsed = Date.now() - revokedAt;
+
+            if (elapsed < COOLDOWN_MS) {
+                const reopensAt = Math.floor((revokedAt + COOLDOWN_MS) / 1000);
+                await interaction.reply({
+                    content: `❌ Your approval was revoked. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
+                    flags: MessageFlags.Ephemeral,
+                });
+                return;
+            }
+
+            // Cooldown has passed — clear the old record and let them apply fresh
+            const { deleteApplication } =
+                await import('../services/applicationManager.js');
+            await deleteApplication(interaction.user.id);
         }
     }
 

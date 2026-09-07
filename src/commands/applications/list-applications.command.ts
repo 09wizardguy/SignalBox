@@ -26,7 +26,8 @@ const listApplicationsCommand: Command = {
                 .addChoices(
                     { name: 'Pending', value: ApplicationStatus.PENDING },
                     { name: 'Approved', value: ApplicationStatus.APPROVED },
-                    { name: 'Rejected', value: ApplicationStatus.REJECTED }
+                    { name: 'Rejected', value: ApplicationStatus.REJECTED },
+                    { name: 'Revoked', value: ApplicationStatus.REVOKED }
                 )
         ) as SlashCommandBuilder,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {

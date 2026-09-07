@@ -30,6 +30,15 @@ import {
     ChannelType,
 } from 'discord.js';
 
+// Last-resort safety nets: log instead of crashing the whole process.
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled promise rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error);
+});
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -159,6 +168,10 @@ client.once(Events.ClientReady, async () => {
         ],
         status: 'online',
     });
+});
+
+client.on(Events.Error, (error) => {
+    console.error('Discord client error:', error);
 });
 
 client.on(Events.ThreadCreate, async (channel) => {

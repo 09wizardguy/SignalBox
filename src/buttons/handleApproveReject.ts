@@ -219,7 +219,7 @@ export async function handleRejectModalSubmit(
     try {
         const user = await interaction.client.users.fetch(userId);
         const cooldownEnd = Math.floor(
-            (Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000
+            (Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000
         );
         const reasonLine = reason ? `\n\n**Reason:** ${reason}` : '';
         await user.send(

@@ -18,6 +18,12 @@ import {
     updateApplicationMessageId,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
+
+// How long a rejected/revoked applicant must wait before they can reapply.
+// This is only ever read at check-time (never persisted per-application), so
+// changing this value and restarting the bot immediately takes effect for
+// every existing rejected/revoked application too — no data migration needed.
+const REAPPLY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000;
 import {
     validateMinecraftUsername,
     formatUUID,
@@ -53,12 +59,13 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             });
             return;
         } else if (existingApp.status === ApplicationStatus.REJECTED) {
-            const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
             const rejectedAt = existingApp.rejectedAt ?? existingApp.createdAt;
             const elapsed = Date.now() - rejectedAt;
 
-            if (elapsed < COOLDOWN_MS) {
-                const reopensAt = Math.floor((rejectedAt + COOLDOWN_MS) / 1000);
+            if (elapsed < REAPPLY_COOLDOWN_MS) {
+                const reopensAt = Math.floor(
+                    (rejectedAt + REAPPLY_COOLDOWN_MS) / 1000
+                );
                 await interaction.reply({
                     content: `❌ Your previous application was rejected. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
                     flags: MessageFlags.Ephemeral,
@@ -71,12 +78,13 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
                 await import('../services/applicationManager.js');
             await deleteApplication(interaction.user.id);
         } else if (existingApp.status === ApplicationStatus.REVOKED) {
-            const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
             const revokedAt = existingApp.revokedAt ?? existingApp.createdAt;
             const elapsed = Date.now() - revokedAt;
 
-            if (elapsed < COOLDOWN_MS) {
-                const reopensAt = Math.floor((revokedAt + COOLDOWN_MS) / 1000);
+            if (elapsed < REAPPLY_COOLDOWN_MS) {
+                const reopensAt = Math.floor(
+                    (revokedAt + REAPPLY_COOLDOWN_MS) / 1000
+                );
                 await interaction.reply({
                     content: `❌ Your approval was revoked. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
                     flags: MessageFlags.Ephemeral,

@@ -7,6 +7,8 @@ import {
     TextInputBuilder,
     TextInputStyle,
     ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     ModalSubmitInteraction,
 } from 'discord.js';
 import {
@@ -68,6 +70,7 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
 
     // Attempt to whitelist the Minecraft account if valid
     let whitelistStatus = '';
+    let whitelistFailed = false;
     if (application.isValidMinecraftAccount && application.minecraftUsername) {
         const whitelisted = await whitelistPlayer(
             application.minecraftUsername
@@ -78,12 +81,28 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
                 '\n🎮 **Minecraft account whitelisted successfully!**';
         } else {
             whitelistStatus =
-                '\n⚠️ **Failed to whitelist Minecraft account** - Please whitelist manually or check RCON configuration.';
+                '\n⚠️ **Failed to whitelist Minecraft account** - Use the button below to retry, or whitelist manually.';
+            whitelistFailed = true;
         }
     } else {
         whitelistStatus =
             '\n⚠️ **Minecraft account not validated** - Whitelist the player manually if needed.';
     }
+
+    // If the automatic whitelist attempt failed, give moderators a one-click
+    // retry button on the review-channel embed instead of making them run
+    // the whitelist command by hand.
+    const components = whitelistFailed
+        ? [
+              new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  new ButtonBuilder()
+                      .setCustomId(`retry_whitelist_${userId}`)
+                      .setLabel('Retry Whitelist')
+                      .setEmoji('🔁')
+                      .setStyle(ButtonStyle.Primary)
+              ),
+          ]
+        : [];
 
     // Update embed
     const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
@@ -94,7 +113,7 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
 
     await interaction.message.edit({
         embeds: [updatedEmbed],
-        components: [],
+        components,
     });
 
     // Notify user
@@ -219,7 +238,7 @@ export async function handleRejectModalSubmit(
     try {
         const user = await interaction.client.users.fetch(userId);
         const cooldownEnd = Math.floor(
-            (Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000
+            (Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000
         );
         const reasonLine = reason ? `\n\n**Reason:** ${reason}` : '';
         await user.send(
@@ -233,4 +252,93 @@ export async function handleRejectModalSubmit(
         content: `❌ Application rejected for <@${userId}>${reason ? `\n**Reason:** ${reason}` : ''}`,
         flags: MessageFlags.Ephemeral,
     });
+}
+
+export async function handleRetryWhitelistButton(
+    interaction: ButtonInteraction
+) {
+    // Same role gate as approve/reject - only application managers can
+    // retry whitelisting.
+    const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
+    if (!hasRole) {
+        await interaction.reply({
+            content: '❌ You do not have permission to manage the whitelist.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const userId = interaction.customId.replace('retry_whitelist_', '');
+    const application = getApplication(userId);
+
+    if (!application) {
+        await interaction.reply({
+            content: '❌ Application not found.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    // Only approved applications should ever be whitelisted. If the
+    // application has since been rejected or revoked, the retry button is
+    // stale - don't act on it.
+    if (application.status !== ApplicationStatus.APPROVED) {
+        await interaction.reply({
+            content: `⚠️ This application is no longer approved (status: \`${application.status}\`), so it can't be whitelisted.`,
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    if (
+        !application.isValidMinecraftAccount ||
+        !application.minecraftUsername
+    ) {
+        await interaction.reply({
+            content:
+                '❌ This application has no validated Minecraft account to whitelist.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    // Defer since RCON round-trips can take a moment.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const whitelisted = await whitelistPlayer(application.minecraftUsername);
+
+    if (whitelisted) {
+        // Success - drop the retry button and update the footer so it's
+        // clear on the review-channel message that this got resolved.
+        const updatedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+            .setColor(Colors.Green)
+            .setFooter({
+                text: `Approved · Minecraft account whitelisted (retried by ${interaction.user.username})`,
+            });
+
+        await interaction.message.edit({
+            embeds: [updatedEmbed],
+            components: [],
+        });
+
+        try {
+            const user = await interaction.client.users.fetch(userId);
+            await user.send(
+                `✅ Your Minecraft account **${application.minecraftUsername}** has been whitelisted! You can now join the server.`
+            );
+        } catch (error) {
+            console.error('Could not DM user:', error);
+        }
+
+        await interaction.editReply({
+            content: `✅ **${application.minecraftUsername}** has been whitelisted.`,
+        });
+    } else {
+        // Still failing - leave the button in place so a moderator can try
+        // again once the underlying issue (RCON connectivity, etc.) is
+        // resolved.
+        await interaction.editReply({
+            content: `❌ Still failed to whitelist **${application.minecraftUsername}**. Check the RCON configuration and try again, or whitelist manually.`,
+        });
+    }
 }

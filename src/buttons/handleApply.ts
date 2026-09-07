@@ -18,6 +18,12 @@ import {
     updateApplicationMessageId,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
+
+// How long a rejected/revoked applicant must wait before they can reapply.
+// This is only ever read at check-time (never persisted per-application), so
+// changing this value and restarting the bot immediately takes effect for
+// every existing rejected/revoked application too — no data migration needed.
+const REAPPLY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000;
 import {
     validateMinecraftUsername,
     formatUUID,
@@ -53,14 +59,34 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             });
             return;
         } else if (existingApp.status === ApplicationStatus.REJECTED) {
-            const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
             const rejectedAt = existingApp.rejectedAt ?? existingApp.createdAt;
             const elapsed = Date.now() - rejectedAt;
 
-            if (elapsed < COOLDOWN_MS) {
-                const reopensAt = Math.floor((rejectedAt + COOLDOWN_MS) / 1000);
+            if (elapsed < REAPPLY_COOLDOWN_MS) {
+                const reopensAt = Math.floor(
+                    (rejectedAt + REAPPLY_COOLDOWN_MS) / 1000
+                );
                 await interaction.reply({
                     content: `❌ Your previous application was rejected. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
+                    flags: MessageFlags.Ephemeral,
+                });
+                return;
+            }
+
+            // Cooldown has passed — clear the old record and let them apply fresh
+            const { deleteApplication } =
+                await import('../services/applicationManager.js');
+            await deleteApplication(interaction.user.id);
+        } else if (existingApp.status === ApplicationStatus.REVOKED) {
+            const revokedAt = existingApp.revokedAt ?? existingApp.createdAt;
+            const elapsed = Date.now() - revokedAt;
+
+            if (elapsed < REAPPLY_COOLDOWN_MS) {
+                const reopensAt = Math.floor(
+                    (revokedAt + REAPPLY_COOLDOWN_MS) / 1000
+                );
+                await interaction.reply({
+                    content: `❌ Your approval was revoked. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
                     flags: MessageFlags.Ephemeral,
                 });
                 return;
@@ -96,7 +122,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setLabel(`What's your goal for the server?`)
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Tell us why you want to be part of the community')
-        .setRequired(false)
+        .setRequired(true)
         .setMaxLength(1000);
 
     // Theme input
@@ -104,7 +130,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setCustomId('theme_input')
         .setLabel('What theme are planning to go for?')
         .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
+        .setRequired(true)
         .setMaxLength(1000);
 
     // Add inputs to action rows
@@ -117,8 +143,9 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         reasonInput
     );
 
-    const themeRow =
-        new ActionRowBuilder<TextInputBuilder>().addComponents(themeInput);
+    const themeRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+        themeInput
+    );
 
     modal.addComponents(minecraftUsernameRow, reasonRow, themeRow);
 

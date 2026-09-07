@@ -11,6 +11,7 @@ import delreminderCommand from './utility/reminders/commands/reminderDel.command
 
 import showApplyButtonCommand from './applications/show-apply-button.command';
 import listApplicationsCommand from './applications/list-applications.command';
+import revokeApplicationCommand from './applications/revoke-application.command';
 
 import strikeCommand from './moderation/strike.command';
 import checkStrikeCommand from './moderation/checkstrike.command';
@@ -25,6 +26,7 @@ const commandImports: (Command | undefined)[] = [
     delreminderCommand,
     showApplyButtonCommand,
     listApplicationsCommand,
+    revokeApplicationCommand,
     strikeCommand,
     checkStrikeCommand,
 ];

@@ -23,6 +23,7 @@ import {
     handleApproveButton,
     handleRejectButton,
     handleRejectModalSubmit,
+    handleRetryWhitelistButton,
 } from '../buttons/handleApproveReject';
 
 const PREFIX = '!';
@@ -98,6 +99,8 @@ const textCommandHandler: Handler = ({ client }) => {
                     await handleApproveButton(interaction);
                 } else if (customId.startsWith('reject_')) {
                     await handleRejectButton(interaction);
+                } else if (customId.startsWith('retry_whitelist_')) {
+                    await handleRetryWhitelistButton(interaction);
                 }
             } catch (error) {
                 console.error('Error handling button interaction:', error);

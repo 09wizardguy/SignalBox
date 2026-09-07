@@ -25,6 +25,8 @@ async function saveApplication(application: Application): Promise<void> {
         createdAt: application.createdAt,
         rejectedAt: application.rejectedAt,
         messageId: application.messageId,
+        revokedAt: application.revokedAt,
+        revokedBy: application.revokedBy,
     };
 
     await getPersistence().set(
@@ -139,6 +141,41 @@ export async function updateApplicationStatus(
     await saveApplication(application);
 
     return true;
+}
+
+/**
+ * Revoke a previously approved application.
+ *
+ * This is a dedicated function (rather than reusing updateApplicationStatus)
+ * so that callers of updateApplicationStatus are completely unaffected, and
+ * so we can record who performed the revocation alongside when it happened.
+ *
+ * Returns null if there is no application on record for the user, or if the
+ * application is not currently APPROVED (revoking a pending/rejected/already
+ * -revoked application doesn't make sense and is rejected here so callers
+ * don't have to duplicate that check).
+ */
+export async function revokeApplication(
+    userId: string,
+    revokedBy?: string
+): Promise<Application | null> {
+    const application = applications.get(userId);
+
+    if (!application) {
+        return null;
+    }
+
+    if (application.status !== ApplicationStatus.APPROVED) {
+        return null;
+    }
+
+    application.status = ApplicationStatus.REVOKED;
+    application.revokedAt = Date.now();
+    application.revokedBy = revokedBy;
+
+    await saveApplication(application);
+
+    return application;
 }
 
 /**

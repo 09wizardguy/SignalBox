@@ -26,7 +26,8 @@ const listApplicationsCommand: Command = {
                 .addChoices(
                     { name: 'Pending', value: ApplicationStatus.PENDING },
                     { name: 'Approved', value: ApplicationStatus.APPROVED },
-                    { name: 'Rejected', value: ApplicationStatus.REJECTED }
+                    { name: 'Rejected', value: ApplicationStatus.REJECTED },
+                    { name: 'Revoked', value: ApplicationStatus.REVOKED }
                 )
         ) as SlashCommandBuilder,
     executeSlash: async (interaction: ChatInputCommandInteraction) => {
@@ -75,7 +76,7 @@ const listApplicationsCommand: Command = {
                 `**Status:** ${app.status}`,
                 `**Minecraft:** ${app.minecraftUsername} (${validationStatus})${uuidInfo}`,
                 `**Reason:** ${app.reason?.substring(0, 100) || 'Not provided'}`,
-                `**Theme:** ${app.theme?.substring(0,100) || 'Not provided'}`,
+                `**Theme:** ${app.theme?.substring(0, 100) || 'Not provided'}`,
                 `**Likes Trains:** ${app.likeTrains || 'Not answered'}`,
                 `**Applied:** <t:${Math.floor(app.createdAt / 1000)}:R>`,
             ].join('\n');

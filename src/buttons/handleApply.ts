@@ -143,8 +143,9 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         reasonInput
     );
 
-    const themeRow =
-        new ActionRowBuilder<TextInputBuilder>().addComponents(themeInput);
+    const themeRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+        themeInput
+    );
 
     modal.addComponents(minecraftUsernameRow, reasonRow, themeRow);
 

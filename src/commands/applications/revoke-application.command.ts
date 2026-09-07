@@ -30,7 +30,9 @@ const revokeApplicationCommand: Command = {
         .addUserOption((option) =>
             option
                 .setName('user')
-                .setDescription('The user whose approved application should be revoked')
+                .setDescription(
+                    'The user whose approved application should be revoked'
+                )
                 .setRequired(true)
         )
         .addStringOption((option) =>
@@ -92,7 +94,10 @@ const revokeApplicationCommand: Command = {
         // player in the first place, so we only undo whitelisting we're
         // confident happened automatically.
         let whitelistStatus = '';
-        if (application.isValidMinecraftAccount && application.minecraftUsername) {
+        if (
+            application.isValidMinecraftAccount &&
+            application.minecraftUsername
+        ) {
             const removed = await removeWhitelistPlayer(
                 application.minecraftUsername
             );
@@ -133,7 +138,9 @@ const revokeApplicationCommand: Command = {
                 .catch(() => null);
 
             if (reviewChannel?.isTextBased()) {
-                const originalMessage = await (reviewChannel as TextChannel).messages
+                const originalMessage = await (
+                    reviewChannel as TextChannel
+                ).messages
                     .fetch(application.messageId)
                     .catch(() => null);
 

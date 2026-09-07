@@ -94,14 +94,14 @@ export async function handleApproveButton(interaction: ButtonInteraction) {
     // the whitelist command by hand.
     const components = whitelistFailed
         ? [
-            new ActionRowBuilder<ButtonBuilder>().addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`retry_whitelist_${userId}`)
-                    .setLabel('Retry Whitelist')
-                    .setEmoji('🔁')
-                    .setStyle(ButtonStyle.Primary)
-            ),
-        ]
+              new ActionRowBuilder<ButtonBuilder>().addComponents(
+                  new ButtonBuilder()
+                      .setCustomId(`retry_whitelist_${userId}`)
+                      .setLabel('Retry Whitelist')
+                      .setEmoji('🔁')
+                      .setStyle(ButtonStyle.Primary)
+              ),
+          ]
         : [];
 
     // Update embed
@@ -290,7 +290,10 @@ export async function handleRetryWhitelistButton(
         return;
     }
 
-    if (!application.isValidMinecraftAccount || !application.minecraftUsername) {
+    if (
+        !application.isValidMinecraftAccount ||
+        !application.minecraftUsername
+    ) {
         await interaction.reply({
             content:
                 '❌ This application has no validated Minecraft account to whitelist.',

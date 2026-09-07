@@ -7,19 +7,19 @@ SignalBox supports two interfaces for most commands:
 
 Not every command is available in both forms — see the "Interfaces" column below.
 
-| Command                                   | Interfaces   | Required Role               |
-| ----------------------------------------- | ------------ | --------------------------- |
-| [`ping`](#ping)                           | Slash only   | none                        |
-| [`server`](#server)                       | Slash + Text | none                        |
-| [`user`](#user)                           | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
-| [`remindme`](#remindme)                   | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
-| [`reminders`](#reminders)                 | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
-| [`delreminder`](#delreminder)             | Slash + Text | `BASIC_COMMANDS_ROLE_ID`    |
-| [`show-apply-button`](#show-apply-button) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
-| [`list-applications`](#list-applications) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
-| [`revoke-application`](#revoke-application)| Slash only  | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID`|
-| [`strike`](#strike)                       | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
-| [`checkstrike`](#checkstrike)             | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID` |
+| Command                                     | Interfaces   | Required Role                       |
+| ------------------------------------------- | ------------ | ----------------------------------- |
+| [`ping`](#ping)                             | Slash only   | none                                |
+| [`server`](#server)                         | Slash + Text | none                                |
+| [`user`](#user)                             | Slash + Text | `BASIC_COMMANDS_ROLE_ID`            |
+| [`remindme`](#remindme)                     | Slash + Text | `BASIC_COMMANDS_ROLE_ID`            |
+| [`reminders`](#reminders)                   | Slash + Text | `BASIC_COMMANDS_ROLE_ID`            |
+| [`delreminder`](#delreminder)               | Slash + Text | `BASIC_COMMANDS_ROLE_ID`            |
+| [`show-apply-button`](#show-apply-button)   | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID` |
+| [`list-applications`](#list-applications)   | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID` |
+| [`revoke-application`](#revoke-application) | Slash only   | `MC_MOD_ROLE_ID or MANAGER_ROLE_ID` |
+| [`strike`](#strike)                         | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID`         |
+| [`checkstrike`](#checkstrike)               | Slash + Text | `ADVANCED_COMMANDS_ROLE_ID`         |
 
 ---
 

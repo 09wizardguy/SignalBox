@@ -122,7 +122,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setLabel(`What's your goal for the server?`)
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder('Tell us why you want to be part of the community')
-        .setRequired(false)
+        .setRequired(true)
         .setMaxLength(1000);
 
     // Theme input
@@ -130,7 +130,7 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
         .setCustomId('theme_input')
         .setLabel('What theme are planning to go for?')
         .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
+        .setRequired(true)
         .setMaxLength(1000);
 
     // Add inputs to action rows

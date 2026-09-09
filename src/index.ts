@@ -204,8 +204,9 @@ client.on(Events.ThreadCreate, async (channel) => {
 
             if (
                 channel.parent &&
-                (channel.parentId === process.env.MC_SERVER_CATEGORY_ID ||
-                    channel.parent.id === process.env.MC_SUGGESTION_CHANNEL_ID)
+                (channel.parent.parentId ===
+                    process.env.MC_SERVER_CATEGORY_ID ||
+                    channel.parent.id === process.env.MC_SUGGESTIONS_CHANNEL_ID)
             ) {
                 await message.edit(`<@&${McModRoleId}><@&${SupportRoleId}>`);
             }

@@ -198,22 +198,25 @@ client.on(Events.ThreadCreate, async (channel) => {
                 channel.parent.id === process.env.SUPPORT_CHANNEL_ID
             ) {
                 await message.edit(`<@&${SupportRoleId}>`);
-            }
-
-            await timeout(2000);
-
-            if (
+                await timeout(2000);
+                await message.delete();
+            } else if (
                 channel.parent &&
-                (channel.parent.parentId ===
-                    process.env.MC_SERVER_CATEGORY_ID ||
-                    channel.parent.id === process.env.MC_SUGGESTIONS_CHANNEL_ID)
+                channel.parent.parentId === process.env.MC_SERVER_CATEGORY_ID
+            ) {
+                await message.edit(`<@&${McModRoleId}>`);
+                await timeout(2000);
+                await message.delete();
+            } else if (
+                channel.parent &&
+                channel.parent.id === process.env.MC_SUGGESTIONS_CHANNEL_ID
             ) {
                 await message.edit(`<@&${McModRoleId}><@&${SupportRoleId}>`);
+                await timeout(2000);
+                await message.delete();
+            } else {
+                await message.delete();
             }
-
-            await timeout(1000);
-
-            await message.delete();
         }
     } catch (error) {
         console.error('Error in ThreadCreate event:', error);

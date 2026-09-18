@@ -101,6 +101,11 @@ function buildStrikeEmbed(
                 inline: true,
             },
             {
+                name: 'Reason',
+                value: record.reason ?? 'No reason provided',
+                inline: false,
+            },
+            {
                 name: '⏱ Schedule',
                 value: lines.join('\n'),
                 inline: false,

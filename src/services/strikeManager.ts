@@ -23,6 +23,11 @@ export interface StrikeRecord {
     /** Unix ms when the strike fully expires and all roles are removed */
     expiresAt: number;
     issuedBy: string;
+    /**
+     * Moderator-supplied reason for the strike. Optional: absent when no
+     * reason was given, and on records issued before reasons existed.
+     */
+    reason?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,7 +412,8 @@ export async function issueStrike(
     userId: string,
     level: 1 | 2 | 3,
     issuedBy: string,
-    guildId: string
+    guildId: string,
+    reason?: string
 ): Promise<StrikeRecord> {
     // Cancel any timers from a prior strike
     clearTimers(userId);
@@ -428,6 +434,7 @@ export async function issueStrike(
         issuedAt: now,
         expiresAt: now + totalMs,
         issuedBy,
+        ...(reason ? { reason } : {}),
     };
 
     strikes.set(userId, record);

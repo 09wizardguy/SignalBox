@@ -34,20 +34,24 @@ const remindersCommand: Command = {
     executeText: async (message: Message) => {
         const active = listReminders(message.author.id);
         if (active.length === 0) {
-            await message.reply('✅ You have no active reminders.');
+            await message.reply({
+                content: '✅ You have no active reminders.',
+                allowedMentions: { repliedUser: false },
+            });
             return;
         }
 
-        await message.reply(
-            `📋 Your reminders:\n${active
+        await message.reply({
+            content: `📋 Your reminders:\n${active
                 .map(
                     (r, i) =>
                         `${i + 1}. ${r.message || '(no message)'} - <t:${Math.floor(
                             r.expiresAt / 1000
                         )}:R>`
                 )
-                .join('\n')}`
-        );
+                .join('\n')}`,
+            allowedMentions: { repliedUser: false },
+        });
     },
 };
 

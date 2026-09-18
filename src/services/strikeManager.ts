@@ -129,25 +129,32 @@ function getRoleIdForLevel(level: 1 | 2 | 3): string | undefined {
     }
 }
 
+type RoleSyncResult = 'unchanged' | 'updated' | 'failed';
+
 /**
- * Removes all three strike roles from the member, then applies only the role
- * that matches `targetLevel` exactly. Pass `null` to just clear all roles.
+ * Brings the member's strike roles in line with `targetLevel`, touching only
+ * what differs from their current roles:
  *
  *   targetLevel 3 → STRIKE_3_ROLE only
  *   targetLevel 2 → STRIKE_2_ROLE only
  *   targetLevel 1 → STRIKE_1_ROLE only
  *   null           → no strike roles (strike cleared or expired)
+ *
+ * If the member already has exactly the right role, nothing is applied.
+ * Any other strike roles are removed, and the target role is added only if
+ * it is missing. The member is fetched with `force: true` so the comparison
+ * is against their actual current roles rather than a possibly stale cache.
  */
 async function applyStrikeRole(
     guildId: string,
     userId: string,
     targetLevel: 1 | 2 | 3 | null
-) {
+): Promise<RoleSyncResult> {
     if (!_client) {
         console.error(
             '[StrikeManager] applyStrikeRole called before initStrikeManager'
         );
-        return;
+        return 'failed';
     }
 
     try {
@@ -157,16 +164,16 @@ async function applyStrikeRole(
 
         if (!guild) {
             console.warn(`[StrikeManager] Guild ${guildId} not found in cache`);
-            return;
+            return 'failed';
         }
 
         const member: GuildMember | null = await guild.members
-            .fetch(userId)
+            .fetch({ user: userId, force: true })
             .catch(() => null);
 
         if (!member) {
             console.warn(`[StrikeManager] Member ${userId} not found in guild`);
-            return;
+            return 'failed';
         }
 
         // Collect all three strike role IDs that are actually configured
@@ -178,31 +185,69 @@ async function applyStrikeRole(
             ] as (string | undefined)[]
         ).filter((id): id is string => Boolean(id));
 
-        // Strip every strike role currently on the member
+        const targetRoleId =
+            targetLevel !== null ? getRoleIdForLevel(targetLevel) : undefined;
+
+        let changed = false;
+        let failed = false;
+
+        // Remove any strike role that isn't the one we want to keep
         for (const roleId of allStrikeRoleIds) {
-            if (member.roles.cache.has(roleId)) {
-                await member.roles.remove(roleId).catch(console.error);
+            if (roleId === targetRoleId || !member.roles.cache.has(roleId)) {
+                continue;
+            }
+
+            const ok = await member.roles
+                .remove(roleId)
+                .then(() => true)
+                .catch((err) => {
+                    console.error(err);
+                    return false;
+                });
+
+            if (ok) {
+                changed = true;
+            } else {
+                failed = true;
             }
         }
 
-        // Apply only the single role for the target level
-        if (targetLevel !== null) {
-            const roleId = getRoleIdForLevel(targetLevel);
+        // Add the target role only if the member doesn't already have it
+        if (targetRoleId && !member.roles.cache.has(targetRoleId)) {
+            const ok = await member.roles
+                .add(targetRoleId)
+                .then(() => true)
+                .catch((err) => {
+                    console.error(err);
+                    return false;
+                });
 
-            if (roleId) {
-                await member.roles.add(roleId).catch(console.error);
+            if (ok) {
+                changed = true;
+            } else {
+                failed = true;
             }
+        }
+
+        const roleLabel =
+            targetLevel !== null
+                ? `STRIKE_${targetLevel}_ROLE`
+                : 'no strike role';
+
+        if (failed) {
+            return 'failed';
         }
 
         console.log(
-            `[StrikeManager] Applied ${
-                targetLevel !== null
-                    ? `STRIKE_${targetLevel}_ROLE`
-                    : 'no strike role'
-            } to ${userId}`
+            changed
+                ? `[StrikeManager] Applied ${roleLabel} to ${userId}`
+                : `[StrikeManager] ${userId} already has the correct role (${roleLabel}) — no change`
         );
+
+        return changed ? 'updated' : 'unchanged';
     } catch (err) {
         console.error(`[StrikeManager] Role error for ${userId}:`, err);
+        return 'failed';
     }
 }
 
@@ -501,6 +546,8 @@ export async function loadStrikes(guildId: string) {
 
         let loaded = 0;
         let expired = 0;
+        let rolesAlreadyCorrect = 0;
+        let rolesCorrected = 0;
 
         for (const record of persistedStrikes) {
             // Migrate records written before the issuedLevel/currentLevel split
@@ -539,8 +586,19 @@ export async function loadStrikes(guildId: string) {
 
             strikes.set(record.userId, record);
 
-            // Ensure the member has exactly the right single role right now
-            await applyStrikeRole(guildId, record.userId, correctLevel);
+            // Ensure the member has exactly the right single role right now.
+            // Members who already have it are left untouched.
+            const roleResult = await applyStrikeRole(
+                guildId,
+                record.userId,
+                correctLevel
+            );
+
+            if (roleResult === 'unchanged') {
+                rolesAlreadyCorrect++;
+            } else if (roleResult === 'updated') {
+                rolesCorrected++;
+            }
 
             // Persist any migration/current-level correction
             await saveStrike(record);
@@ -553,7 +611,7 @@ export async function loadStrikes(guildId: string) {
         }
 
         console.log(
-            `[StrikeManager] Loaded and scheduled ${loaded} active strike(s).`
+            `[StrikeManager] Loaded and scheduled ${loaded} active strike(s) (${rolesAlreadyCorrect} role(s) already correct, ${rolesCorrected} corrected).`
         );
 
         if (expired > 0) {

@@ -32,15 +32,24 @@ const delreminderCommand: Command = {
         const num = parseInt(args[0]);
 
         if (isNaN(num)) {
-            await message.reply('Usage: !delreminder <number>');
+            await message.reply({
+                content: 'Usage: !delreminder <number>',
+                allowedMentions: { repliedUser: false },
+            });
             return;
         }
 
         const success = await deleteReminder(message.author.id, num - 1);
         if (success) {
-            await message.reply(`🗑️ Reminder #${num} deleted.`);
+            await message.reply({
+                content: `🗑️ Reminder #${num} deleted.`,
+                allowedMentions: { repliedUser: false },
+            });
         } else {
-            await message.reply(`⚠️ Invalid reminder number.`);
+            await message.reply({
+                content: `⚠️ Invalid reminder number.`,
+                allowedMentions: { repliedUser: false },
+            });
         }
     },
 };

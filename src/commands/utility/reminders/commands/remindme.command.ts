@@ -37,19 +37,30 @@ const remindmeCommand: Command = {
 
         const textChannel = channel as TextChannel;
 
-        await scheduleReminder(
-            interaction.user.id,
-            time,
-            msg,
-            textChannel.id,
-            async (message, createdAt) => {
-                await textChannel.send(
-                    `⏰ Reminder for <@${
-                        interaction.user.id
-                    }>: ${message} set <t:${Math.floor(createdAt / 1000)}:R>`
-                );
-            }
-        );
+        try {
+            await scheduleReminder(
+                interaction.user.id,
+                time,
+                msg,
+                textChannel.id,
+                async (message, createdAt) => {
+                    await textChannel.send(
+                        `⏰ Reminder for <@${
+                            interaction.user.id
+                        }>: ${message} set <t:${Math.floor(createdAt / 1000)}:R>`
+                    );
+                }
+            );
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : 'Invalid time format.';
+
+            await interaction.reply({
+                content: `⚠️ ${errorMessage}`,
+                ephemeral: true,
+            });
+            return;
+        }
 
         await interaction.reply(`⏰ Reminder set for **${time}**`);
     },
@@ -72,17 +83,25 @@ const remindmeCommand: Command = {
         }
         const msg = reminderMessage.join(' ');
 
-        await scheduleReminder(
-            message.author.id,
-            time,
-            msg,
-            textChannel.id,
-            async (reminderText, createdAt) => {
-                await textChannel.send(
-                    `⏰ Reminder for <@${message.author.id}>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`
-                );
-            }
-        );
+        try {
+            await scheduleReminder(
+                message.author.id,
+                time,
+                msg,
+                textChannel.id,
+                async (reminderText, createdAt) => {
+                    await textChannel.send(
+                        `⏰ Reminder for <@${message.author.id}>: ${reminderText} set <t:${Math.floor(createdAt / 1000)}:R>`
+                    );
+                }
+            );
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : 'Invalid time format.';
+
+            await textChannel.send(`⚠️ ${errorMessage}`);
+            return;
+        }
 
         await textChannel.send(`⏰ Reminder set for **${time}**`);
     },

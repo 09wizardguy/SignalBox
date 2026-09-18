@@ -203,34 +203,37 @@ Revokes a previously **approved** application: removes the `APPROVED_APPLICATION
 
 ### `strike`
 
-Issues or removes a strike for a user. Strike levels 1–3 have different expiry/downgrade schedules; level `0` removes an existing strike. Logs the action to the moderation log channel (`MODERATION_LOGS_CHANNEL_ID`) if configured.
+Issues or removes a strike for a user. Strike levels 1–3 have different expiry/downgrade schedules; level `0` removes an existing strike. Logs the action (including the reason) to the moderation log channel (`MODERATION_LOGS_CHANNEL_ID`) if configured. When a strike is issued, the user is also sent a DM with the reason, strike level, and when the strike expires; if their DMs are closed, the moderator is told the DM couldn't be delivered.
 
 **Slash:**
 
 ```
-/strike level:<0|1|2|3> user:<mention|ID>
+/strike level:<0|1|2|3> user:<mention|ID> [reason:<text>]
 ```
 
 - `level` _(required)_ — `0` (remove), `1` (Warning), `2` (Serious), `3` (Severe)
 - `user` _(required)_ — mention or Discord ID of the target user
+- `reason` _(optional, max 1000 chars)_ — shown to the user in the DM, logged in the moderation log, and stored on the strike record (visible via `/checkstrike`); defaults to "No reason provided". Not used when removing a strike (`0`).
 
 **Text:**
 
 ```
-!strike <level> <userID|@mention>
+!strike <level> <userID|@mention> [reason]
 ```
+
+Everything after the user is treated as the reason.
 
 Example:
 
 ```
-!strike 2 @SomeUser
+!strike 2 @SomeUser Repeated spamming in #general
 ```
 
 ---
 
 ### `checkstrike`
 
-Looks up the active strike (if any) for a user, showing level, issuer, and the downgrade/clear schedule.
+Looks up the active strike (if any) for a user, showing level, issuer, the reason it was issued ("No reason provided" if none was given, including strikes issued before reasons were stored), and the downgrade/clear schedule.
 
 **Slash:**
 

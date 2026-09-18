@@ -132,6 +132,16 @@ export async function loadReminders(
  * Parse a duration string like "1m2h3d" into milliseconds.
  */
 function parseDuration(input: string): number | null {
+    // Decimal values (e.g. "4.5h") aren't supported. Without this guard the
+    // regex below silently drops the integer part — "4.5h" would parse as
+    // "5h" — so reject decimals explicitly with guidance toward the
+    // compound-unit syntax that does work.
+    if (/\d+\.\d+\s*[smhdw]/i.test(input)) {
+        throw new Error(
+            'Decimals aren\'t supported for reminder times — "4.5h" won\'t work, "4h30m" will.'
+        );
+    }
+
     const regex = /(\d+)([smhdw])/g;
 
     let match;

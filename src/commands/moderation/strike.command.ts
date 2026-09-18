@@ -51,6 +51,20 @@ async function resolveUser(
 // Embed builders
 // ---------------------------------------------------------------------------
 
+const STRIKE_COLORS: Record<1 | 2 | 3, number> = {
+    1: 0xffc107,
+    2: 0xff8c00,
+    3: 0xe74c3c,
+};
+const STRIKE_EMOJI: Record<1 | 2 | 3, string> = {
+    1: '🟡',
+    2: '🟠',
+    3: '🔴',
+};
+
+const DEFAULT_REASON = 'No reason provided';
+const MAX_REASON_LENGTH = 1000;
+
 /**
  * Build the detailed embed that goes to the moderation log channel.
  *
@@ -63,7 +77,8 @@ function buildLogEmbed(
     targetUser: User,
     level: number | null,
     record: StrikeRecord | null,
-    moderator: User
+    moderator: User,
+    reason: string = DEFAULT_REASON
 ): EmbedBuilder {
     if (action === 'removed') {
         return new EmbedBuilder()
@@ -85,12 +100,7 @@ function buildLogEmbed(
     }
 
     const lvl = level as 1 | 2 | 3;
-    const colors: Record<1 | 2 | 3, number> = {
-        1: 0xffc107,
-        2: 0xff8c00,
-        3: 0xe74c3c,
-    };
-    const emoji = { 1: '🟡', 2: '🟠', 3: '🔴' }[lvl];
+    const emoji = STRIKE_EMOJI[lvl];
 
     // Build the schedule field value
     let scheduleValue = 'N/A';
@@ -123,7 +133,7 @@ function buildLogEmbed(
 
     return new EmbedBuilder()
         .setTitle(`${emoji} Strike ${lvl} Issued`)
-        .setColor(colors[lvl])
+        .setColor(STRIKE_COLORS[lvl])
         .addFields(
             {
                 name: 'User',
@@ -132,11 +142,42 @@ function buildLogEmbed(
             },
             { name: 'Strike Level', value: `**${lvl}**`, inline: true },
             { name: 'Issued by', value: `<@${moderator.id}>`, inline: true },
+            { name: 'Reason', value: reason, inline: false },
             { name: '⏱ Schedule', value: scheduleValue, inline: false }
         )
         .setFooter({
             text: `Time remaining: ${record ? formatTimeRemaining(record) : 'N/A'}`,
         })
+        .setTimestamp();
+}
+
+/**
+ * Build the embed that is DM'd to the user receiving a strike.
+ * `record.expiresAt` is when the strike is fully cleared.
+ */
+function buildDmEmbed(
+    guildName: string,
+    level: 1 | 2 | 3,
+    record: StrikeRecord,
+    reason: string
+): EmbedBuilder {
+    const expiresTs = Math.floor(record.expiresAt / 1000);
+
+    return new EmbedBuilder()
+        .setTitle(`${STRIKE_EMOJI[level]} You have received a Strike ${level}`)
+        .setDescription(
+            `A moderator in **${guildName}** has issued you a strike.`
+        )
+        .setColor(STRIKE_COLORS[level])
+        .addFields(
+            { name: 'Reason', value: reason, inline: false },
+            { name: 'Strike Level', value: `**${level}**`, inline: true },
+            {
+                name: 'Strike Expires',
+                value: `<t:${expiresTs}:F> (<t:${expiresTs}:R>)`,
+                inline: true,
+            }
+        )
         .setTimestamp();
 }
 
@@ -147,7 +188,10 @@ function buildLogEmbed(
 interface ExecuteParams {
     levelStr: string;
     targetStr: string;
+    /** Optional free-text reason. Ignored when removing a strike (level 0). */
+    reasonStr?: string | null;
     guildId: string;
+    guildName: string;
     moderator: User;
     fetchUser: (id: string) => Promise<User>;
     /** Send a plain-text acknowledgement in the command channel */
@@ -162,7 +206,9 @@ async function executeStrike(params: ExecuteParams) {
     const {
         levelStr,
         targetStr,
+        reasonStr,
         guildId,
+        guildName,
         moderator,
         fetchUser,
         ackReply,
@@ -205,17 +251,44 @@ async function executeStrike(params: ExecuteParams) {
     }
 
     // --- Issue strike ---
+    // Only a moderator-supplied reason is persisted; the default text is
+    // display-only so records without a reason stay distinguishable.
+    const providedReason =
+        reasonStr?.trim().slice(0, MAX_REASON_LENGTH) || undefined;
+    const reason = providedReason ?? DEFAULT_REASON;
+
     const record = await issueStrike(
         targetUser.id,
         level as 1 | 2 | 3,
         moderator.id,
-        guildId
+        guildId,
+        providedReason
     );
 
+    // DM the user before logging so a log-channel failure can't suppress it.
+    // Users with DMs closed will throw — that must never fail the command.
+    let dmSent = true;
+    try {
+        await targetUser.send({
+            embeds: [
+                buildDmEmbed(guildName, level as 1 | 2 | 3, record, reason),
+            ],
+        });
+    } catch (error) {
+        dmSent = false;
+        console.error(`[Strike] Could not DM ${targetUser.id}:`, error);
+    }
+
     await sendLog(
-        buildLogEmbed('issued', targetUser, level, record, moderator)
+        buildLogEmbed('issued', targetUser, level, record, moderator, reason)
     );
-    await ackReply(`✅ Strike **${level}** issued to **${targetUser.tag}**.`);
+
+    await ackReply(
+        `✅ Strike **${level}** issued to **${targetUser.tag}**.\n**Reason:** ${reason}` +
+            (dmSent
+                ? ''
+                : '\n⚠️ Could not DM the user (their DMs may be closed).')
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -247,6 +320,13 @@ const strikeCommand: Command = {
                 .setName('user')
                 .setDescription('User mention or Discord ID')
                 .setRequired(true)
+        )
+        .addStringOption((opt) =>
+            opt
+                .setName('reason')
+                .setDescription('Reason for the strike (shown to the user)')
+                .setRequired(false)
+                .setMaxLength(MAX_REASON_LENGTH)
         ) as SlashCommandBuilder,
 
     // -------------------------------------------------------------------------
@@ -266,6 +346,7 @@ const strikeCommand: Command = {
 
         const levelStr = String(interaction.options.getInteger('level', true));
         const targetStr = interaction.options.getString('user', true);
+        const reasonStr = interaction.options.getString('reason');
 
         // Resolve the moderation log channel once
         const logChannelId = process.env.MODERATION_LOGS_CHANNEL_ID;
@@ -280,7 +361,9 @@ const strikeCommand: Command = {
         await executeStrike({
             levelStr,
             targetStr,
+            reasonStr,
             guildId: interaction.guild.id,
+            guildName: interaction.guild.name,
             moderator: interaction.user,
             fetchUser: (id) => interaction.client.users.fetch(id),
 
@@ -319,12 +402,13 @@ const strikeCommand: Command = {
 
         if (args.length < 2) {
             await (message.channel as TextChannel).send(
-                '❌ Usage: `!strike <level> <userID or @mention>`\nLevel: 0 (remove), 1, 2, or 3.'
+                '❌ Usage: `!strike <level> <userID or @mention> [reason]`\nLevel: 0 (remove), 1, 2, or 3.'
             );
             return;
         }
 
-        const [levelStr, targetStr] = args;
+        const [levelStr, targetStr, ...reasonParts] = args;
+        const reasonStr = reasonParts.join(' ');
 
         // Resolve the moderation log channel once
         const logChannelId = process.env.MODERATION_LOGS_CHANNEL_ID;
@@ -339,7 +423,9 @@ const strikeCommand: Command = {
         await executeStrike({
             levelStr,
             targetStr,
+            reasonStr,
             guildId: message.guild.id,
+            guildName: message.guild.name,
             moderator: message.author,
             fetchUser: (id) => message.client.users.fetch(id),
 

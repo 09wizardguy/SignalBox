@@ -300,7 +300,7 @@ async function sendToModerators(
             { name: 'User ID', value: interaction.user.id, inline: true },
             {
                 name: 'Minecraft Username',
-                value: minecraftUsername,
+                value: `\`${minecraftUsername}\``,
                 inline: false,
             }
         )

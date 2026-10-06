@@ -10,6 +10,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ModalSubmitInteraction,
+    TextChannel,
 } from 'discord.js';
 import {
     getApplication,
@@ -18,6 +19,7 @@ import {
 import { ApplicationStatus } from '../handlers/types/application';
 import { whitelistPlayer } from '../services/minecraftService';
 import { APPLICATION_MANAGER_ROLE_IDS } from '../config/roles';
+import { REAPPLY_COOLDOWN_MS } from '../config/applications';
 import { checkRoles } from '../handlers/permissions.handler';
 
 export async function handleApproveButton(interaction: ButtonInteraction) {
@@ -170,9 +172,76 @@ export async function handleRejectButton(interaction: ButtonInteraction) {
         return;
     }
 
-    // Show modal so moderator can optionally provide a reason
+    // Discord modals only support text inputs (no select menus/buttons), so
+    // the reapply-cooldown choice has to happen as a separate button step
+    // before the reason modal is shown.
+    const cooldownRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`reject_cooldown_standard_${userId}`)
+            .setLabel('Standard Cooldown')
+            .setEmoji('🕑')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`reject_cooldown_instant_${userId}`)
+            .setLabel('Instant Reapply')
+            .setEmoji('⚡')
+            .setStyle(ButtonStyle.Secondary)
+    );
+
+    await interaction.reply({
+        content:
+            'Should this applicant wait out the normal cooldown before reapplying, or be allowed to reapply immediately?',
+        components: [cooldownRow],
+        flags: MessageFlags.Ephemeral,
+    });
+}
+
+export async function handleRejectCooldownChoice(
+    interaction: ButtonInteraction
+) {
+    // Same role gate as handleRejectButton - re-checked here since this is a
+    // separate interaction.
+    const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
+    if (!hasRole) {
+        await interaction.reply({
+            content: '❌ You do not have permission to reject applications.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const isInstant = interaction.customId.startsWith(
+        'reject_cooldown_instant_'
+    );
+    const userId = interaction.customId.replace(
+        isInstant ? 'reject_cooldown_instant_' : 'reject_cooldown_standard_',
+        ''
+    );
+
+    const application = getApplication(userId);
+
+    if (!application) {
+        await interaction.reply({
+            content: '❌ Application not found.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    if (application.status !== ApplicationStatus.PENDING) {
+        await interaction.reply({
+            content: '⚠️ This application has already been processed.',
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    // Show modal so moderator can optionally provide a reason. The cooldown
+    // choice rides along encoded in the modal's customId.
     const modal = new ModalBuilder()
-        .setCustomId(`reject_modal_${userId}`)
+        .setCustomId(
+            `reject_modal_${isInstant ? 'instant' : 'standard'}_${userId}`
+        )
         .setTitle('Reject Application');
 
     const reasonInput = new TextInputBuilder()
@@ -194,9 +263,9 @@ export async function handleRejectModalSubmit(
     interaction: ModalSubmitInteraction
 ) {
     // Re-check here rather than relying solely on the check in
-    // handleRejectButton, since this is a separate interaction and
-    // shouldn't implicitly trust that the modal could only have been
-    // opened by an authorized user.
+    // handleRejectButton/handleRejectCooldownChoice, since this is a
+    // separate interaction and shouldn't implicitly trust that the modal
+    // could only have been opened by an authorized user.
     const hasRole = await checkRoles(interaction, APPLICATION_MANAGER_ROLE_IDS);
     if (!hasRole) {
         await interaction.reply({
@@ -206,7 +275,15 @@ export async function handleRejectModalSubmit(
         return;
     }
 
-    const userId = interaction.customId.replace('reject_modal_', '');
+    // customId is reject_modal_<standard|instant>_<userId>. Fall back to
+    // "standard" if the prefix is somehow missing so an unexpected customId
+    // never silently grants an instant reapply.
+    const withoutPrefix = interaction.customId.replace('reject_modal_', '');
+    const isInstant = withoutPrefix.startsWith('instant_');
+    const userId = withoutPrefix.replace(
+        isInstant ? 'instant_' : 'standard_',
+        ''
+    );
     const reason = interaction.fields.getTextInputValue('reject_reason').trim();
 
     const application = getApplication(userId);
@@ -220,36 +297,64 @@ export async function handleRejectModalSubmit(
     }
 
     // Update status
-    await updateApplicationStatus(userId, ApplicationStatus.REJECTED);
+    await updateApplicationStatus(
+        userId,
+        ApplicationStatus.REJECTED,
+        isInstant
+    );
 
-    // Update the original embed in the review channel
-    const updatedEmbed = EmbedBuilder.from(interaction.message!.embeds[0])
-        .setColor(Colors.Red)
-        .setFooter({
-            text: `Rejected by ${interaction.user.username}${reason ? ` · ${reason}` : ''}`,
-        });
+    // Update the original embed in the review channel. We can't rely on
+    // interaction.message here - the cooldown-choice step means this modal
+    // was opened from the ephemeral cooldown-choice message, not the public
+    // review-channel embed, so interaction.message would point at the wrong
+    // (ephemeral) message and editing it 404s. Instead, look the original
+    // message up the same way revoke-application.command.ts does: via its
+    // stored messageId in the configured review channel.
+    const reviewChannelId = process.env.APPLICATION_REVIEW_CHANNEL_ID;
+    if (reviewChannelId && application.messageId) {
+        const reviewChannel = await interaction.client.channels
+            .fetch(reviewChannelId)
+            .catch(() => null);
 
-    await interaction.message!.edit({
-        embeds: [updatedEmbed],
-        components: [],
-    });
+        if (reviewChannel?.isTextBased()) {
+            const originalMessage = await (
+                reviewChannel as TextChannel
+            ).messages
+                .fetch(application.messageId)
+                .catch(() => null);
+
+            if (originalMessage && originalMessage.embeds[0]) {
+                const updatedEmbed = EmbedBuilder.from(
+                    originalMessage.embeds[0]
+                )
+                    .setColor(Colors.Red)
+                    .setFooter({
+                        text: `Rejected by ${interaction.user.username}${isInstant ? ' · Instant reapply' : ''}${reason ? ` · ${reason}` : ''}`,
+                    });
+
+                await originalMessage
+                    .edit({ embeds: [updatedEmbed], components: [] })
+                    .catch(console.error);
+            }
+        }
+    }
 
     // Notify applicant via DM
     try {
         const user = await interaction.client.users.fetch(userId);
-        const cooldownEnd = Math.floor(
-            (Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000
-        );
         const reasonLine = reason ? `\n\n**Reason:** ${reason}` : '';
+        const reapplyLine = isInstant
+            ? '\n\nYou may reapply right away.'
+            : `\n\nYou may reapply <t:${Math.floor((Date.now() + REAPPLY_COOLDOWN_MS) / 1000)}:R> (on <t:${Math.floor((Date.now() + REAPPLY_COOLDOWN_MS) / 1000)}:F>).`;
         await user.send(
-            `❌ Unfortunately, your application has been **REJECTED**.${reasonLine}\n\nYou may reapply <t:${cooldownEnd}:R> (on <t:${cooldownEnd}:F>). If you have questions, please contact a moderator.`
+            `❌ Unfortunately, your application has been **REJECTED**.${reasonLine}${reapplyLine} If you have questions, please contact a moderator.`
         );
     } catch (error) {
         console.error('Could not DM user:', error);
     }
 
     await interaction.reply({
-        content: `❌ Application rejected for <@${userId}>${reason ? `\n**Reason:** ${reason}` : ''}`,
+        content: `❌ Application rejected for <@${userId}>${reason ? `\n**Reason:** ${reason}` : ''}${isInstant ? '\n⚡ Instant reapply allowed.' : ''}`,
         flags: MessageFlags.Ephemeral,
     });
 }

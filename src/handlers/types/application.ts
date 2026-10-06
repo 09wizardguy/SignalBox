@@ -16,15 +16,17 @@ export interface Application {
     // safe since these fields are optional.
     revokedAt?: number;
     revokedBy?: string;
+    // Optional — set when a moderator explicitly waives the normal
+    // reapply cooldown at reject/revoke time. Absent (false) on every
+    // pre-existing record, which preserves today's standard-cooldown
+    // behavior for all of them.
+    instantReapply?: boolean;
 }
 
 export enum ApplicationStatus {
     PENDING = 'pending',
     APPROVED = 'approved',
     REJECTED = 'rejected',
-    // Added for the revoke-application retrofit. This is purely additive —
-    // existing persisted records only ever contain the three values above,
-    // and nothing reads/writes REVOKED unless explicitly revoked.
     REVOKED = 'revoked',
 }
 
@@ -43,4 +45,5 @@ export interface SerializedApplication {
     messageId?: string;
     revokedAt?: number;
     revokedBy?: string;
+    instantReapply?: boolean;
 }

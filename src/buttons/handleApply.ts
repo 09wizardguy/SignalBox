@@ -18,12 +18,7 @@ import {
     updateApplicationMessageId,
 } from '../services/applicationManager';
 import { ApplicationStatus } from '../handlers/types/application';
-
-// How long a rejected/revoked applicant must wait before they can reapply.
-// This is only ever read at check-time (never persisted per-application), so
-// changing this value and restarting the bot immediately takes effect for
-// every existing rejected/revoked application too — no data migration needed.
-const REAPPLY_COOLDOWN_MS = 2 * 24 * 60 * 60 * 1000;
+import { REAPPLY_COOLDOWN_MS } from '../config/applications';
 import {
     validateMinecraftUsername,
     formatUUID,
@@ -59,40 +54,50 @@ export async function handleApplyButton(interaction: ButtonInteraction) {
             });
             return;
         } else if (existingApp.status === ApplicationStatus.REJECTED) {
-            const rejectedAt = existingApp.rejectedAt ?? existingApp.createdAt;
-            const elapsed = Date.now() - rejectedAt;
+            // A moderator can waive the cooldown entirely at reject time.
+            if (!existingApp.instantReapply) {
+                const rejectedAt =
+                    existingApp.rejectedAt ?? existingApp.createdAt;
+                const elapsed = Date.now() - rejectedAt;
 
-            if (elapsed < REAPPLY_COOLDOWN_MS) {
-                const reopensAt = Math.floor(
-                    (rejectedAt + REAPPLY_COOLDOWN_MS) / 1000
-                );
-                await interaction.reply({
-                    content: `❌ Your previous application was rejected. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
-                    flags: MessageFlags.Ephemeral,
-                });
-                return;
+                if (elapsed < REAPPLY_COOLDOWN_MS) {
+                    const reopensAt = Math.floor(
+                        (rejectedAt + REAPPLY_COOLDOWN_MS) / 1000
+                    );
+                    await interaction.reply({
+                        content: `❌ Your previous application was rejected. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    return;
+                }
             }
 
-            // Cooldown has passed — clear the old record and let them apply fresh
+            // Cooldown has passed (or was waived) — clear the old record and
+            // let them apply fresh.
             const { deleteApplication } =
                 await import('../services/applicationManager.js');
             await deleteApplication(interaction.user.id);
         } else if (existingApp.status === ApplicationStatus.REVOKED) {
-            const revokedAt = existingApp.revokedAt ?? existingApp.createdAt;
-            const elapsed = Date.now() - revokedAt;
+            // A moderator can waive the cooldown entirely at revoke time.
+            if (!existingApp.instantReapply) {
+                const revokedAt =
+                    existingApp.revokedAt ?? existingApp.createdAt;
+                const elapsed = Date.now() - revokedAt;
 
-            if (elapsed < REAPPLY_COOLDOWN_MS) {
-                const reopensAt = Math.floor(
-                    (revokedAt + REAPPLY_COOLDOWN_MS) / 1000
-                );
-                await interaction.reply({
-                    content: `❌ Your approval was revoked. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
-                    flags: MessageFlags.Ephemeral,
-                });
-                return;
+                if (elapsed < REAPPLY_COOLDOWN_MS) {
+                    const reopensAt = Math.floor(
+                        (revokedAt + REAPPLY_COOLDOWN_MS) / 1000
+                    );
+                    await interaction.reply({
+                        content: `❌ Your approval was revoked. You can reapply <t:${reopensAt}:R> (on <t:${reopensAt}:F>).`,
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    return;
+                }
             }
 
-            // Cooldown has passed — clear the old record and let them apply fresh
+            // Cooldown has passed (or was waived) — clear the old record and
+            // let them apply fresh.
             const { deleteApplication } =
                 await import('../services/applicationManager.js');
             await deleteApplication(interaction.user.id);
@@ -300,7 +305,7 @@ async function sendToModerators(
             { name: 'User ID', value: interaction.user.id, inline: true },
             {
                 name: 'Minecraft Username',
-                value: minecraftUsername,
+                value: `\`${minecraftUsername}\``,
                 inline: false,
             }
         )

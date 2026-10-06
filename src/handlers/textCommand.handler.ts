@@ -22,6 +22,7 @@ import {
 import {
     handleApproveButton,
     handleRejectButton,
+    handleRejectCooldownChoice,
     handleRejectModalSubmit,
     handleRetryWhitelistButton,
 } from '../buttons/handleApproveReject';
@@ -97,6 +98,11 @@ const textCommandHandler: Handler = ({ client }) => {
                     await handleApplyButton(interaction);
                 } else if (customId.startsWith('approve_')) {
                     await handleApproveButton(interaction);
+                } else if (customId.startsWith('reject_cooldown_')) {
+                    // Must be checked before the generic 'reject_' prefix
+                    // below, since 'reject_cooldown_...' also starts with
+                    // 'reject_'.
+                    await handleRejectCooldownChoice(interaction);
                 } else if (customId.startsWith('reject_')) {
                     await handleRejectButton(interaction);
                 } else if (customId.startsWith('retry_whitelist_')) {

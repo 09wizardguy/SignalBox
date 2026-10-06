@@ -15,6 +15,7 @@ import {
 import { ApplicationStatus } from '../../handlers/types/application';
 import { removeWhitelistPlayer } from '../../services/minecraftService';
 import { APPLICATION_MANAGER_ROLE_IDS } from '../../config/roles';
+import { REAPPLY_COOLDOWN_MS } from '../../config/applications';
 
 const revokeApplicationCommand: Command = {
     name: 'revoke-application',
@@ -37,6 +38,18 @@ const revokeApplicationCommand: Command = {
         )
         .addStringOption((option) =>
             option
+                .setName('cooldown')
+                .setDescription(
+                    'How long before this user can reapply (default: standard cooldown)'
+                )
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Standard Cooldown', value: 'standard' },
+                    { name: 'Instant Reapply', value: 'instant' }
+                )
+        )
+        .addStringOption((option) =>
+            option
                 .setName('reason')
                 .setDescription('Reason for the revocation (optional)')
                 .setRequired(false)
@@ -54,6 +67,8 @@ const revokeApplicationCommand: Command = {
 
         const targetUser = interaction.options.getUser('user', true);
         const reason = interaction.options.getString('reason') || undefined;
+        const isInstant =
+            interaction.options.getString('cooldown') === 'instant';
 
         // Look up the existing application first, so we can give a precise
         // error message without mutating anything.
@@ -117,7 +132,8 @@ const revokeApplicationCommand: Command = {
         // Persist the revocation.
         const revoked = await revokeApplication(
             targetUser.id,
-            interaction.user.id
+            interaction.user.id,
+            isInstant
         );
 
         if (!revoked) {
@@ -150,7 +166,7 @@ const revokeApplicationCommand: Command = {
                     )
                         .setColor(Colors.Grey)
                         .setFooter({
-                            text: `Revoked by ${interaction.user.username}${reason ? ` · ${reason}` : ''}`,
+                            text: `Revoked by ${interaction.user.username}${isInstant ? ' · Instant reapply' : ''}${reason ? ` · ${reason}` : ''}`,
                         });
 
                     await originalMessage
@@ -163,18 +179,23 @@ const revokeApplicationCommand: Command = {
         // Notify the applicant via DM.
         try {
             const reasonLine = reason ? `\n\n**Reason:** ${reason}` : '';
-            const cooldownEnd = Math.floor(
-                (Date.now() + 2 * 24 * 60 * 60 * 1000) / 1000
-            );
+            const reapplyLine = isInstant
+                ? '\nYou may reapply right away.'
+                : (() => {
+                        const cooldownEnd = Math.floor(
+                            (Date.now() + REAPPLY_COOLDOWN_MS) / 1000
+                        );
+                        return `\nYou may reapply <t:${cooldownEnd}:R> (on <t:${cooldownEnd}:F>).`;
+                    })();
             await targetUser.send(
-                `⚠️ Your previously **approved** application has been **revoked**.${reasonLine}\n\nYou have been removed from the whitelist.\nYou may reapply <t:${cooldownEnd}:R> (on <t:${cooldownEnd}:F>). Please contact a moderator if you have questions.`
+                `⚠️ Your previously **approved** application has been **revoked**.${reasonLine}\n\nYou have been removed from the whitelist.\n${reapplyLine} Please contact a moderator if you have questions.`
             );
         } catch (error) {
             console.error('Could not DM user:', error);
         }
 
         await interaction.editReply({
-            content: `✅ Application revoked for <@${targetUser.id}>${reason ? `\n**Reason:** ${reason}` : ''}${whitelistStatus}`,
+            content: `✅ Application revoked for <@${targetUser.id}>${reason ? `\n**Reason:** ${reason}` : ''}${isInstant ? '\n⚡ Instant reapply allowed.' : ''}${whitelistStatus}`,
         });
     },
 };

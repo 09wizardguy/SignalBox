@@ -27,6 +27,7 @@ async function saveApplication(application: Application): Promise<void> {
         messageId: application.messageId,
         revokedAt: application.revokedAt,
         revokedBy: application.revokedBy,
+        instantReapply: application.instantReapply,
     };
 
     await getPersistence().set(
@@ -121,10 +122,16 @@ export function getAllApplications(status?: ApplicationStatus): Application[] {
 
 /**
  * Update application status.
+ *
+ * @param instantReapply - Only meaningful when status is REJECTED. When
+ * true, the applicant bypasses the normal reapply cooldown entirely (see
+ * handleApplyButton). Omitted/false preserves today's standard-cooldown
+ * behavior, so existing callers that don't pass this are unaffected.
  */
 export async function updateApplicationStatus(
     userId: string,
-    status: ApplicationStatus
+    status: ApplicationStatus,
+    instantReapply?: boolean
 ): Promise<boolean> {
     const application = applications.get(userId);
 
@@ -136,6 +143,7 @@ export async function updateApplicationStatus(
 
     if (status === ApplicationStatus.REJECTED) {
         application.rejectedAt = Date.now();
+        application.instantReapply = Boolean(instantReapply);
     }
 
     await saveApplication(application);
@@ -154,10 +162,14 @@ export async function updateApplicationStatus(
  * application is not currently APPROVED (revoking a pending/rejected/already
  * -revoked application doesn't make sense and is rejected here so callers
  * don't have to duplicate that check).
+ *
+ * @param instantReapply - When true, the applicant bypasses the normal
+ * reapply cooldown entirely instead of waiting out REAPPLY_COOLDOWN_MS.
  */
 export async function revokeApplication(
     userId: string,
-    revokedBy?: string
+    revokedBy?: string,
+    instantReapply?: boolean
 ): Promise<Application | null> {
     const application = applications.get(userId);
 
@@ -172,6 +184,7 @@ export async function revokeApplication(
     application.status = ApplicationStatus.REVOKED;
     application.revokedAt = Date.now();
     application.revokedBy = revokedBy;
+    application.instantReapply = Boolean(instantReapply);
 
     await saveApplication(application);
 
